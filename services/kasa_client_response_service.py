@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Dict
 
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
@@ -21,7 +22,7 @@ class KasaClientResponseService:
     async def update_client_response(
         self,
         request: UpdateClientResponseRequest
-    ):
+    ) -> Dict:
         logger.info(f'Update client response for device: {request.device_id}')
 
         if none_or_whitespace(request.device_id):
@@ -56,15 +57,14 @@ class KasaClientResponseService:
             model.to_dict())
 
         logger.info(f'Updated records: {result.acknowledged}')
-
         return model
 
     async def create_client_response(
         self,
-        device_id,
-        preset_id,
-        client_response
-    ):
+        device_id: str,
+        preset_id: str,
+        client_response: Dict
+    ) -> Dict:
         logger.info(f'Create client response record')
 
         model = KasaClientResponse.create_client_response(
@@ -79,8 +79,8 @@ class KasaClientResponseService:
 
     async def get_client_response(
         self,
-        device_id
-    ):
+        device_id: str
+    ) -> KasaClientResponse:
         entity = await self.__client_response_repository.get({
             'device_id': device_id
         })

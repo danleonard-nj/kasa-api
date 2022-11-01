@@ -1,21 +1,16 @@
-from framework.auth.wrappers.azure_ad_wrappers import azure_ad_authorization
-from framework.handlers.response_handler_async import response_handler
-from framework.dependency_injection.provider import inject_container_async
 from framework.logger.providers import get_logger
-from quart import Blueprint, request
+from framework.rest.blueprints.meta import MetaBlueprint
+from quart import request
 from services.kasa_preset_service import (CreatePresetRequest,
                                           KasaPresetSevice,
                                           UpdatePresetRequest)
 
 logger = get_logger(__name__)
 
-preset_bp = Blueprint('preset_bp', __name__)
+preset_bp = MetaBlueprint('preset_bp', __name__)
 
 
-@preset_bp.route('/api/preset/<id>', methods=['GET'], endpoint='get_preset')
-@response_handler
-@azure_ad_authorization(scheme='read')
-@inject_container_async
+@preset_bp.configure('/api/preset/<id>', methods=['GET'], auth_scheme='read')
 async def get_preset(container, id):
     kasa_preset_service: KasaPresetSevice = container.resolve(
         KasaPresetSevice)
@@ -27,10 +22,7 @@ async def get_preset(container, id):
     return result.to_dict()
 
 
-@preset_bp.route('/api/preset/<preset_id>', methods=['DELETE'],  endpoint='delete_preset')
-@response_handler
-@azure_ad_authorization(scheme='write')
-@inject_container_async
+@preset_bp.configure('/api/preset/<preset_id>', methods=['DELETE'], auth_scheme='write')
 async def delete_preset(container, preset_id):
     kasa_preset_service: KasaPresetSevice = container.resolve(
         KasaPresetSevice)
@@ -41,10 +33,7 @@ async def delete_preset(container, preset_id):
     return result.to_dict()
 
 
-@preset_bp.route('/api/preset', methods=['GET'],  endpoint='get_presets')
-@response_handler
-@azure_ad_authorization(scheme='read')
-@inject_container_async
+@preset_bp.configure('/api/preset', methods=['GET'],  auth_scheme='read')
 async def get_all(container):
     kasa_preset_service: KasaPresetSevice = container.resolve(
         KasaPresetSevice)
@@ -59,10 +48,7 @@ async def get_all(container):
     }
 
 
-@preset_bp.route('/api/preset', methods=['POST'],  endpoint='create_preset')
-@response_handler
-@azure_ad_authorization(scheme='write')
-@inject_container_async
+@preset_bp.configure('/api/preset', methods=['POST'],  auth_scheme='write')
 async def create_preset(container):
     kasa_preset_service: KasaPresetSevice = container.resolve(
         KasaPresetSevice)
@@ -75,10 +61,7 @@ async def create_preset(container):
     return result.to_dict()
 
 
-@preset_bp.route('/api/preset', methods=['PUT'],  endpoint='update_preset')
-@response_handler
-@azure_ad_authorization(scheme='write')
-@inject_container_async
+@preset_bp.configure('/api/preset', methods=['PUT'],  auth_scheme='write')
 async def update_preset(container):
     kasa_preset_service: KasaPresetSevice = container.resolve(
         KasaPresetSevice)

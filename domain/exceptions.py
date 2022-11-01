@@ -39,6 +39,11 @@ class PresetNotFoundException(Exception):
         super().__init__(f"No preset with the ID '{preset_id}' exists")
 
 
+class SceneNotFoundException(Exception):
+    def __init__(self, scene_id, *args: object) -> None:
+        super().__init__(f"No scene with the ID '{scene_id}' exists")
+
+
 class PresetExistsException(Exception):
     def __init__(self, preset_name, *args: object) -> None:
         super().__init__(

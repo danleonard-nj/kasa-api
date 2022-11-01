@@ -5,6 +5,7 @@ from data.repositories.kasa_scene_category_repository import \
     KasaSceneCategoryRepository
 from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.cache import CacheExpiration, CacheKey
+from domain.exceptions import SceneNotFoundException
 from domain.kasa.scene import KasaScene, KasaSceneCategory
 from domain.rest import (CreateSceneCategoryRequest, CreateSceneRequest,
                          MappedSceneRequest, RunSceneRequest,
@@ -32,7 +33,7 @@ class KasaSceneService:
         self.__cache_client = cache_client
         self.__execution_service = execution_service
 
-    async def expire_cached_scene(
+    async def __expire_cached_scene(
         self,
         scene_id: str
     ) -> None:
@@ -46,7 +47,7 @@ class KasaSceneService:
             key=CacheKey.scene_key(
                 scene_id=scene_id))
 
-    async def expire_cached_scene_list(
+    async def __expire_cached_scene_list(
         self
     ) -> None:
         '''
@@ -67,7 +68,7 @@ class KasaSceneService:
         '''
 
         logger.info('Create scene')
-        await self.expire_cached_scene_list()
+        await self.__expire_cached_scene_list()
 
         scene_exists = await self.__scene_repository.scene_exists(
             scene_name=request.scene_name)
@@ -115,10 +116,10 @@ class KasaSceneService:
             })
 
             await self.__cache_client.set_json(
+                ttl=CacheExpiration.days(7),
+                scene_id=scene_id,
                 key=CacheKey.scene_key(
-                    scene_id=scene_id),
-                value=scene,
-                ttl=CacheExpiration.days(7))
+                    value=scene))
 
         if scene is None:
             raise Exception(f'No scene with the ID {scene_id} exists')
@@ -138,11 +139,7 @@ class KasaSceneService:
 
         logger.info(f'Delete scene: {scene_id}')
 
-        await asyncio.gather(
-            self.expire_cached_scene_list(),
-            self.expire_cached_scene(
-                scene_id=scene_id))
-
+        # Verify the scene actually exists
         scene = await self.__scene_repository.get({
             'scene_id': scene_id
         })
@@ -150,11 +147,20 @@ class KasaSceneService:
         if scene is None:
             raise Exception(f'No scene with the ID {scene_id} exists')
 
-        scene = await self.__scene_repository.delete({
+        # Delete the scene
+        delete_result = await self.__scene_repository.delete({
             'scene_id': scene_id
         })
 
-        return {'result': True}
+        # Expire the cached scene
+        await asyncio.gather(
+            self.__expire_cached_scene_list(),
+            self.__expire_cached_scene(
+                scene_id=scene_id))
+
+        return {
+            'result': delete_result.deleted_count
+        }
 
     async def update_scene(
         self,
@@ -167,10 +173,14 @@ class KasaSceneService:
         logger.info(
             f'Scene: {scene.scene_id}: Updating Kasa scene: {scene.scene_id}')
 
-        await asyncio.gather(
-            self.expire_cached_scene_list(),
-            self.expire_cached_scene(
-                scene_id=scene.scene_id))
+        # Verify the scene exists
+        scene = await self.__scene_repository.get({
+            'scene_id': scene.scene_id
+        })
+
+        if scene is None:
+            raise SceneNotFoundException(
+                scene_id=scene.scene_id)
 
         kasa_scene = KasaScene(
             data=scene.to_dict())
@@ -181,6 +191,13 @@ class KasaSceneService:
         updated_scene = await self.__scene_repository.update(
             selector={'scene_id': kasa_scene.scene_id},
             values=kasa_scene.to_dict())
+
+        # Expire the cached scene and scene list
+        await asyncio.gather(
+            self.__expire_cached_scene_list(),
+            self.__expire_cached_scene(
+                scene_id=scene.scene_id))
+
         logger.info(
             f'Updated count: {updated_scene.modified_count}')
 

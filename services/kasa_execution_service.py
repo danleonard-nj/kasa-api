@@ -2,7 +2,6 @@ from typing import List, Tuple
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
-from clients.service_bus import QueueClient
 from domain.cache import CacheExpiration, CacheKey
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset

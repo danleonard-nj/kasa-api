@@ -47,7 +47,9 @@ class KasaEventService:
 
         return token
 
-    async def refresh_token(self):
+    async def refresh_token(
+        self
+    ):
         logger.info(f'Refreshing token')
         await self.__get_token()
 

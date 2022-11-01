@@ -1,7 +1,8 @@
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
+from deprecated import deprecated
 from domain.cache import CacheExpiration, CacheKey
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
@@ -10,20 +11,13 @@ from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
 from framework.serialization.utilities import serialize
+from framework.utilities.pinq import where
 from framework.validators.nulls import none_or_whitespace
 
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_region_service import KasaRegionService
 
 logger = get_logger(__name__)
-
-
-def where(items, func):
-    results = []
-    for item in items:
-        if func(item) is True:
-            results.append(item)
-    return results
 
 
 class KasaDeviceService:
@@ -128,7 +122,10 @@ class KasaDeviceService:
 
         return kasa_devices
 
-    async def sync_devices(self):
+    @deprecated
+    async def sync_devices(
+        self
+    ):
         logger.info('Syncing devices')
 
         # TODO: Refactor to not delete devices but upsert them
@@ -221,7 +218,7 @@ class KasaDeviceService:
     async def update_device(
         self,
         update_request: UpdateDeviceRequest
-    ):
+    ) -> KasaDevice:
         logger.info(f'Update device: {update_request.to_dict()}')
 
         bust_cache = TaskCollection(
@@ -253,7 +250,7 @@ class KasaDeviceService:
         self,
         device_id: str,
         region_id: str
-    ):
+    ) -> KasaDevice:
         # Expire cached device and device list
         expirations = TaskCollection(
             self.expire_cached_device(
@@ -296,7 +293,7 @@ class KasaDeviceService:
 
     async def get_devices_by_region(
         self
-    ):
+    ) -> List[Dict]:
         logger.info('Fetching devices and regions')
 
         fetch = TaskCollection(
@@ -319,7 +316,7 @@ class KasaDeviceService:
     async def get_device_client_response(
         self,
         device_id: str
-    ):
+    ) -> Dict:
         if none_or_whitespace(device_id):
             raise Exception('Device ID cannot be null')
 
