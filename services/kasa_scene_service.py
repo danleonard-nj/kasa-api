@@ -119,7 +119,7 @@ class KasaSceneService:
                 ttl=CacheExpiration.days(7),
                 scene_id=scene_id,
                 key=CacheKey.scene_key(
-                    value=scene))
+                    scene_id=scene))
 
         if scene is None:
             raise Exception(f'No scene with the ID {scene_id} exists')
