@@ -5,31 +5,40 @@ from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
 from domain.kasa.devices.plug import KasaPlug
+from domain.exceptions import NullArgumentException
 from domain.rest import KasaRequest
 from framework.serialization import Serializable
 from framework.validators.nulls import not_none
+from domain.cache import Cacheable
 
 
-class KasaPreset(Serializable):
+class Selectable:
+    def get_selector(self):
+        raise NotImplementedError()
+
+
+class KasaPreset(Serializable, Cacheable, Selectable):
     def __init__(self, data):
         self.preset_id = data.get('preset_id')
         self.preset_name = data.get('preset_name')
         self.device_type = data.get('device_type')
         self.definition = data.get('definition')
 
-        not_none(self.preset_name, 'preset_name')
-        not_none(self.definition, 'definition')
+        NullArgumentException.if_none_or_whitespace(
+            self.preset_name, 'preset_name')
+        NullArgumentException.if_none_or_whitespace(
+            self.device_type, 'device_type')
+        NullArgumentException.if_none(
+            self.definition, 'definition')
 
-    def to_json(self):
-        return self.__dict__
+    @classmethod
+    def cache_key(cls, object_id):
+        return f'kasa-preset-{object_id}'
 
-    def clone(self):
-        return KasaPreset(data={
-            'preset_id': self.preset_id,
-            'preset_name': self.preset_name,
-            'device_type': self.device_type,
-            'definition': self.definition.copy()
-        })
+    def get_selector(self):
+        return {
+            'preset_id': self.preset_id
+        }
 
     def with_id(self, id=None):
         self.preset_id = id or str(uuid.uuid4())

@@ -1,4 +1,8 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
+
+from framework.clients.cache_client import CacheClientAsync
+from framework.concurrency import TaskCollection
+from framework.logger.providers import get_logger
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
@@ -7,14 +11,10 @@ from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.kasa.scene import KasaScene
 from domain.rest import MappedSceneRequest
-from framework.clients.cache_client import CacheClientAsync
-from framework.concurrency import TaskCollection
-from framework.configuration import Configuration
-from framework.logger.providers import get_logger
-from utils.helpers import apply, get_map
-
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_preset_service import KasaPresetSevice
+from utils.helpers import apply, get_map
+from domain.exceptions import NullArgumentException
 
 logger = get_logger(__name__)
 
@@ -22,17 +22,17 @@ logger = get_logger(__name__)
 class KasaExecutionService:
     def __init__(
         self,
-        configuration: Configuration,
         device_service: KasaDeviceService,
         preset_service: KasaPresetSevice,
         identity_client: IdentityClient,
         cache_client: CacheClientAsync,
         kasa_client: KasaClient
     ):
-        '''
-        Construct an instance of scene execution service
-        '''
-        self.__event_base_url = configuration.events.get('base_url')
+        NullArgumentException.if_none(device_service, 'device_service')
+        NullArgumentException.if_none(preset_service, 'preset_service')
+        NullArgumentException.if_none(identity_client, 'identity_client')
+        NullArgumentException.if_none(cache_client, 'cache_client')
+        NullArgumentException.if_none(kasa_client, 'kasa_client')
 
         self.__device_service = device_service
         self.__preset_service = preset_service
@@ -67,15 +67,19 @@ class KasaExecutionService:
 
     async def get_device_state_tasks(
         self,
-        preset_map: dict[str, KasaPreset],
-        device_map: dict[str, KasaDevice],
-        preset_scene_maps: list[MappedSceneRequest],
+        preset_map: Dict[str, KasaPreset],
+        device_map: Dict[str, KasaDevice],
+        preset_scene_maps: List[MappedSceneRequest],
         region_id: str = None
     ) -> TaskCollection:
         '''
-           Get a deferred task collection comprised of all the
-           Kasa client set device state requests
-           '''
+        Get a deferred task collection comprised of all the
+        Kasa client set device state requests
+        '''
+
+        NullArgumentException.if_none(preset_map, 'preset_map')
+        NullArgumentException.if_none(device_map, 'device_map')
+        NullArgumentException.if_none(preset_scene_maps, 'preset_scene_maps')
 
         tasks = TaskCollection()
         # device_states = list()
@@ -116,7 +120,7 @@ class KasaExecutionService:
 
     async def get_device_preset_maps(
         self
-    ) -> Tuple[dict[str, KasaDevice], dict[str, KasaPreset]]:
+    ) -> Tuple[Dict[str, KasaDevice], Dict[str, KasaPreset]]:
         '''
         Get device and preset maps
         '''
@@ -144,6 +148,8 @@ class KasaExecutionService:
         the Kasa client and dispatch events to store the last
         known state of the device
         '''
+
+        NullArgumentException.if_none(scene, 'scene')
 
         # Refresh the token if necessary so when the events are processed
         # there is a working token available

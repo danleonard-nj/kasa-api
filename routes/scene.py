@@ -4,6 +4,7 @@ from framework.logger.providers import get_logger
 from framework.validators.nulls import none_or_whitespace
 from quart import request
 from services.kasa_scene_service import KasaSceneService
+from services.kasa_scene_category_service import KasaSceneCategoryService
 from utils.meta import MetaBlueprint
 
 logger = get_logger(__name__)
@@ -69,11 +70,11 @@ async def update_scene(container):
         KasaSceneService)
 
     body = await request.get_json()
-    _request = UpdateSceneRequest(
+    update_request = UpdateSceneRequest(
         data=body)
 
     result = await kasa_scene_service.update_scene(
-        scene=_request)
+        update_request=update_request)
 
     return result.to_dict()
 
@@ -98,10 +99,10 @@ async def run_scene(container, id):
 
 @scene_bp.configure('/api/scene/category', methods=['GET'], auth_scheme='read')
 async def get_categories(container):
-    kasa_scene_service: KasaSceneService = container.resolve(
-        KasaSceneService)
+    kasa_scene_cageory_service: KasaSceneCategoryService = container.resolve(
+        KasaSceneCategoryService)
 
-    results = await kasa_scene_service.get_scene_categories()
+    results = await kasa_scene_cageory_service.get_scene_categories()
 
     return [
         item.to_dict()
@@ -111,14 +112,14 @@ async def get_categories(container):
 
 @scene_bp.configure('/api/scene/category', methods=['POST'], auth_scheme='write')
 async def create_category(container):
-    kasa_scene_service: KasaSceneService = container.resolve(
-        KasaSceneService)
+    kasa_scene_cageory_service: KasaSceneCategoryService = container.resolve(
+        KasaSceneCategoryService)
 
     body = await request.get_json()
     create_category = CreateSceneCategoryRequest(
         data=body)
 
-    category = await kasa_scene_service.create_scene_category(
+    category = await kasa_scene_cageory_service.create_scene_category(
         request=create_category)
 
     return category.to_dict()
@@ -126,10 +127,10 @@ async def create_category(container):
 
 @scene_bp.configure('/api/scene/category/<id>', methods=['DELETE'], auth_scheme='read')
 async def delete_category(container, id):
-    kasa_scene_service: KasaSceneService = container.resolve(
-        KasaSceneService)
+    kasa_scene_cageory_service: KasaSceneCategoryService = container.resolve(
+        KasaSceneCategoryService)
 
-    result = await kasa_scene_service.delete_scene_category(
+    result = await kasa_scene_cageory_service.delete_scene_category(
         scene_category_id=id)
 
     return result

@@ -1,3 +1,10 @@
+from framework.validators.nulls import none_or_whitespace
+
+
+class NotFoundException(Exception):
+    def __init__(self, object_name, object_id, *args: object) -> None:
+        super().__init__(f"No {object_name} with the ID '{object_id}' exists")
+
 
 class RequiredFieldException(Exception):
     def __init__(self, field_name, *args: object, **kwargs) -> None:
@@ -34,14 +41,46 @@ class InvalidDeviceRequestException(Exception):
         super().__init__(f"Device request is not valid: {message}")
 
 
-class PresetNotFoundException(Exception):
+class PresetNotFoundException(NotFoundException):
     def __init__(self, preset_id, *args: object) -> None:
-        super().__init__(f"No preset with the ID '{preset_id}' exists")
+        super().__init__(
+            object_name='preset',
+            object_id=preset_id)
 
 
-class SceneNotFoundException(Exception):
+class SceneNotFoundException(NotFoundException):
     def __init__(self, scene_id, *args: object) -> None:
-        super().__init__(f"No scene with the ID '{scene_id}' exists")
+        super().__init__(
+            object_name='scene',
+            object_id=scene_id)
+
+
+class SceneCategoryNotFoundException(NotFoundException):
+    def __init__(self, scene_category_id, *args: object) -> None:
+        super().__init__(
+            object_name='scene category',
+            object_id=scene_category_id)
+
+
+class SceneCategoryExistsException(Exception):
+    def __init__(self, scene_category_name, *args: object) -> None:
+        super().__init__(
+            f"A scene category with the name '{scene_category_name}' exists")
+
+
+class NullArgumentException(Exception):
+    def __init__(self, arg_name, *args: object) -> None:
+        super().__init__(f"Argument '{arg_name}' cannot be null")
+
+    @staticmethod
+    def if_none(value, arg_name):
+        if value is None:
+            raise NullArgumentException(arg_name)
+
+    @staticmethod
+    def if_none_or_whitespace(value, arg_name):
+        if none_or_whitespace(value):
+            raise NullArgumentException(arg_name)
 
 
 class PresetExistsException(Exception):

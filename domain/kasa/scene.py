@@ -1,14 +1,17 @@
-from datetime import datetime
 import json
 import uuid
+from datetime import datetime
 from typing import List
 
-from domain.rest import MappedSceneRequest
 from framework.serialization import Serializable
 from framework.validators.nulls import not_none
+from domain.exceptions import NullArgumentException
+
+from domain.cache import Cacheable
+from domain.rest import MappedSceneRequest
 
 
-class KasaScene(Serializable):
+class KasaScene(Serializable, Cacheable):
     def __init__(self, data):
         self.scene_id = data.get('scene_id')
         self.scene_name = data.get('scene_name')
@@ -18,14 +21,27 @@ class KasaScene(Serializable):
 
         # Other values are nullable when the
         # scene is first initialized
-        not_none(self.scene_name, 'scene_name')
 
-    def get_selector(self):
+        NullArgumentException.if_none_or_whitespace(
+            self.scene_name, 'scene_name')
+
+    @classmethod
+    def cache_key(
+        cls,
+        object_id
+    ) -> str:
+        return f'kasa-scene-{object_id}'
+
+    def get_selector(
+        self
+    ) -> dict:
         return {
             'scene_id': self.scene_id
         }
 
-    def get_device_preset_pairs(self) -> List[MappedSceneRequest]:
+    def get_device_preset_pairs(
+        self
+    ) -> List[MappedSceneRequest]:
         '''
         Get mapping objects for presets to devices for
         event dispatch
