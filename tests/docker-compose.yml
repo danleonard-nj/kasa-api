@@ -14,7 +14,7 @@ services:
     networks:
       - isolated
   mongo:
-    image: 'mongo'
+    image: 'mongo:4.4.17'
     networks:
       - isolated
 
