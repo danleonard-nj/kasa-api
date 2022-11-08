@@ -1,12 +1,6 @@
 from typing import Dict, List, Tuple
 
-from clients.kasa_client import KasaClient
-from data.repositories.kasa_device_repository import KasaDeviceRepository
 from deprecated import deprecated
-from domain.cache import CacheExpiration, CacheKey
-from domain.kasa.device import KasaDevice
-from domain.kasa.preset import KasaPreset
-from domain.rest import KasaRequest, KasaResponse, UpdateDeviceRequest
 from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
@@ -14,6 +8,13 @@ from framework.serialization.utilities import serialize
 from framework.utilities.pinq import where
 from framework.validators.nulls import none_or_whitespace
 
+from clients.kasa_client import KasaClient
+from data.repositories.kasa_device_repository import KasaDeviceRepository
+from domain.cache import CacheExpiration, CacheKey
+from domain.exceptions import NullArgumentException
+from domain.kasa.device import KasaDevice
+from domain.kasa.preset import KasaPreset
+from domain.rest import KasaRequest, KasaResponse, UpdateDeviceRequest
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_region_service import KasaRegionService
 
@@ -178,14 +179,11 @@ class KasaDeviceService:
         Set a device state to a given preset
         '''
 
+        NullArgumentException.if_none(device, 'device')
+        NullArgumentException.if_none(preset, 'preset')
+
         logger.info(
             f'Set device state: {device.device_id}: Preset: {preset.preset_id}')
-
-        if device is None:
-            raise Exception('Device cannot be null')
-
-        if preset is None:
-            raise Exception('Preset cannot be null')
 
         # Fetch the Kasa client request from cache if we have it
         kasa_request = await self.__cache_client.get_json(

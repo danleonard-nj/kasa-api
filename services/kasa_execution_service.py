@@ -7,6 +7,7 @@ from framework.logger.providers import get_logger
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
 from domain.cache import CacheExpiration, CacheKey
+from domain.exceptions import NullArgumentException
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.kasa.scene import KasaScene
@@ -14,7 +15,6 @@ from domain.rest import MappedSceneRequest
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_preset_service import KasaPresetSevice
 from utils.helpers import apply, get_map
-from domain.exceptions import NullArgumentException
 
 logger = get_logger(__name__)
 
@@ -108,14 +108,6 @@ class KasaExecutionService:
                     device=device,
                     preset=preset))
 
-            # TODO: Remove store device state features
-            # logger.info(f'Storing device power state as: {preset.power_state}')
-            # state = DeviceState.create_device_state(
-            #     device=device,
-            #     preset=preset)
-
-            # device_states.append(state)
-
         return tasks
 
     async def get_device_preset_maps(
@@ -175,12 +167,6 @@ class KasaExecutionService:
         # Run tasks to set device state and fetch a
         # token to pass to the device state history events
         kasa = await set_device_state_tasks.run()
-
-        # Dispatch store device state events
-        # TODO: Remove store device state features
-        # await self.dispatch_store_device_state_events(
-        #     token=token,
-        #     device_states=device_states)
 
         return {
             'map': apply(preset_scene_maps, lambda x: x.to_dict()),
