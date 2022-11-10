@@ -1,10 +1,10 @@
-from domain.exceptions import RequiredRouteSegmentException
-from domain.rest import UpdateDeviceRequest
 from framework.logger.providers import get_logger
 from framework.validators.nulls import not_none
 from quart import request
+
+from domain.exceptions import RequiredRouteSegmentException
+from domain.rest import UpdateDeviceRequest
 from services.kasa_device_service import KasaDeviceService
-from utils.helpers import none_or_whitespace
 from utils.meta import MetaBlueprint
 
 logger = get_logger(__name__)
@@ -30,7 +30,9 @@ async def get_devices(container):
 async def update_device(container):
     kasa_device_service: KasaDeviceService = container.resolve(
         KasaDeviceService)
+
     body = await request.get_json()
+    not_none(body)
 
     update_request = UpdateDeviceRequest(
         data=body)
@@ -46,8 +48,11 @@ async def get_device(container, device_id):
     kasa_device_service: KasaDeviceService = container.resolve(
         KasaDeviceService)
 
-    if none_or_whitespace(device_id):
-        raise RequiredRouteSegmentException('device_id')
+    # Verify device ID
+    RequiredRouteSegmentException.if_none_or_whitespace(
+        device_id,
+        'device_id'
+    )
 
     result = await kasa_device_service.get_device(
         device_id=device_id)
@@ -72,10 +77,16 @@ async def set_device_preset(container, device_id, preset_id):
     kasa_device_service: KasaDeviceService = container.resolve(
         KasaDeviceService)
 
-    if none_or_whitespace(device_id):
-        raise RequiredRouteSegmentException('device_id')
-    if none_or_whitespace(preset_id):
-        raise RequiredRouteSegmentException('preset_id')
+    # Verify device ID
+    RequiredRouteSegmentException.if_none_or_whitespace(
+        device_id,
+        'device_id'
+    )
+    # Verify preset ID
+    RequiredRouteSegmentException.if_none_or_whitespace(
+        preset_id,
+        'preset_id'
+    )
 
     kasa_request, kasa_response = await kasa_device_service.set_device_state(
         device_id=device_id,
@@ -92,8 +103,11 @@ async def get_device_preset(container, device_id):
     kasa_device_service: KasaDeviceService = container.resolve(
         KasaDeviceService)
 
-    if none_or_whitespace(device_id):
-        raise RequiredRouteSegmentException('device_id')
+    # Verify device ID
+    RequiredRouteSegmentException.if_none_or_whitespace(
+        device_id,
+        'device_id'
+    )
 
     device_state = await kasa_device_service.get_device_state(
         device_id=device_id)
@@ -130,10 +144,16 @@ async def set_device_region(container, device_id, region_id):
     kasa_device_service: KasaDeviceService = container.resolve(
         KasaDeviceService)
 
-    if none_or_whitespace(device_id):
-        raise RequiredRouteSegmentException('device_id')
-    if none_or_whitespace(region_id):
-        raise RequiredRouteSegmentException('region_id')
+    # Verify device ID
+    RequiredRouteSegmentException.if_none_or_whitespace(
+        device_id,
+        'device_id'
+    )
+    # Verify region ID
+    RequiredRouteSegmentException.if_none_or_whitespace(
+        region_id,
+        'region_id'
+    )
 
     result = await kasa_device_service.set_device_region(
         device_id=device_id,
@@ -142,14 +162,14 @@ async def set_device_region(container, device_id, region_id):
     return result.to_dict()
 
 
-@devices_bp.configure('/api/device/region', methods=['GET'], auth_scheme='read')
-async def get_device_regions(container):
-    kasa_device_service: KasaDeviceService = container.resolve(
-        KasaDeviceService)
+# @devices_bp.configure('/api/device/region', methods=['GET'], auth_scheme='read')
+# async def get_device_regions(container):
+#     kasa_device_service: KasaDeviceService = container.resolve(
+#         KasaDeviceService)
 
-    result = await kasa_device_service.get_devices_by_region()
+#     result = await kasa_device_service.get_devices_by_region()
 
-    return result
+#     return result
 
 
 @devices_bp.configure('/api/device/<id>/response', methods=['GET'], auth_scheme='read')

@@ -1,8 +1,6 @@
 from typing import Any, List
 
-from framework.configuration.configuration import Configuration
-from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.core import AgnosticCollection, AgnosticDatabase
 from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 
 

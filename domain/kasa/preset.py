@@ -1,20 +1,17 @@
 import uuid
 from typing import Union
 
+from framework.serialization import Serializable
+from framework.validators.nulls import not_none
+
+from domain.cache import Cacheable
+from domain.common import Selectable
 from domain.constants import KasaDeviceType
+from domain.exceptions import NullArgumentException
 from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
 from domain.kasa.devices.plug import KasaPlug
-from domain.exceptions import NullArgumentException
 from domain.rest import KasaRequest
-from framework.serialization import Serializable
-from framework.validators.nulls import not_none
-from domain.cache import Cacheable
-
-
-class Selectable:
-    def get_selector(self):
-        raise NotImplementedError()
 
 
 class KasaPreset(Serializable, Cacheable, Selectable):

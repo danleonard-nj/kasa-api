@@ -1,11 +1,15 @@
 from abc import abstractmethod
-from domain.constants import KasaDeviceType
-from domain.rest import KasaRequestBase
+
 from framework.serialization import Serializable
 from framework.validators.nulls import not_none
 
+from domain.common import Selectable
+from domain.constants import KasaDeviceType
+from domain.exceptions import NullArgumentException
+from domain.rest import KasaRequestBase
 
-class KasaDevice(Serializable):
+
+class KasaDevice(Serializable, Selectable):
     def __init__(self, data):
         self.device_id = data.get('device_id')
         self.device_name = data.get('device_name')
@@ -17,6 +21,13 @@ class KasaDevice(Serializable):
 
         self._validate_device_type(
             device_type=self.device_type)
+
+    def get_selector(
+        self
+    ) -> dict:
+        return {
+            'device_id': self.device_id
+        }
 
     @abstractmethod
     def get_power_state(self):
@@ -54,3 +65,15 @@ class KasaDevice(Serializable):
 
         if device_type not in [KasaDeviceType.KasaLight, KasaDeviceType.KasaPlug]:
             raise Exception(f'Unsupported device type: {device_type}')
+
+    def set_region(
+        self,
+        region_id: str
+    ) -> None:
+        '''
+        Update the device's region
+        '''
+
+        NullArgumentException.if_none_or_whitespace(region_id)
+
+        self.region_id = region_id

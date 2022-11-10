@@ -4,14 +4,13 @@ from deprecated import deprecated
 from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
-from framework.serialization.utilities import serialize
 from framework.utilities.pinq import where
 from framework.validators.nulls import none_or_whitespace
 
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from domain.cache import CacheExpiration, CacheKey
-from domain.exceptions import NullArgumentException
+from domain.exceptions import DeviceNotFoundException, InvalidDeviceRequestException, NullArgumentException
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import KasaRequest, KasaResponse, UpdateDeviceRequest
@@ -77,7 +76,6 @@ class KasaDeviceService:
                 device_id=device_id))
 
         if device is None:
-            logger.info(f'No cached value, fetching device from database')
             device = await self.__device_repository.get({
                 'device_id': device_id
             })
@@ -89,7 +87,8 @@ class KasaDeviceService:
                 ttl=CacheExpiration.days(7))
 
         if device is None:
-            raise Exception(f'No device with the ID {device_id} exists')
+            raise DeviceNotFoundException(
+                device_id=device_id)
 
         kasa_device = KasaDevice(
             data=device)
@@ -108,7 +107,6 @@ class KasaDeviceService:
             key=CacheKey.device_list())
 
         if device_entities is None:
-            logger.info(f'No cached value, fetching devices')
             device_entities = await self.__device_repository.get_all()
 
             await self.__cache_client.set_json(
@@ -116,10 +114,9 @@ class KasaDeviceService:
                 ttl=CacheExpiration.days(7),
                 value=device_entities)
 
-        kasa_devices = [
-            KasaDevice(device)
-            for device in device_entities
-        ]
+        logger.info(f'Fetched {len(device_entities)} devices')
+        kasa_devices = [KasaDevice(device)
+                        for device in device_entities]
 
         return kasa_devices
 
@@ -129,46 +126,58 @@ class KasaDeviceService:
     ):
         logger.info('Syncing devices')
 
-        # TODO: Refactor to not delete devices but upsert them
-        # Clear existing stored devices
-        setup_tasks = TaskCollection()
-        setup_tasks.add_tasks(
-            self.expire_cached_device_list(),
-            self.__device_repository.collection.delete_many(
-                filter={}))
-
-        _, delete_results = await setup_tasks.run()
-
-        logger.info(f'Deleted device count: {delete_results.acknowledged}')
+        await self.expire_cached_device_list()
         logger.info('Fetching devices from client')
 
-        devices = await self.__kasa_client.get_devices()
+        get_devices = TaskCollection(
+            self.__kasa_client.get_devices(),
+            self.__device_repository.get_all())
 
-        logger.info(
-            f'Client device response: {serialize(devices)}')
+        devices, device_entities = await get_devices.run()
 
-        inserts = TaskCollection()
-        device_results = []
+        known_device_ids = [KasaDevice(data=entity).device_id
+                            for entity in device_entities]
 
+        created_devices = []
         for device in devices.device_list:
-            logger.info(f'Syncing device: {serialize(device)}')
-            kasa_device = KasaDevice.from_kasa_device_params(
-                data=device)
+            logger.info(device)
 
-            logger.info(f'Successfully parsed device {kasa_device.device_id}')
+            device_id = device.get('deviceId')
+            logger.info(f'{device_id}: Syncing device')
 
-            entity = kasa_device.to_dict()
-            device_results.append(entity)
+            # Verify we have the device synced by the
+            # Kasa device ID
+            if device_id not in known_device_ids:
+                logger.info(f'{device_id}: Creating device')
 
-            logger.info(f'Inserting device: {kasa_device.device_id}')
-            inserts.add_task(
-                self.__device_repository.insert(
-                    document=entity))
+                # Create the device if it's not known
+                created_devices.append(device)
 
-        await inserts.run()
+            else:
+                logger.info(f'{device_id}: Known device')
 
-        logger.info('Device sync completed successfully')
-        return device_results
+        if any(created_devices):
+            logger.info(f'Creating {len(created_devices)} new devices')
+
+            create_devices = TaskCollection([
+                self.__create_kasa_device(client_device=device)
+                for device in created_devices
+            ])
+
+            await create_devices.run()
+
+        return created_devices
+
+    async def __create_kasa_device(
+        self,
+        client_device: Dict
+    ) -> None:
+
+        kasa_device = KasaDevice.from_kasa_device_params(
+            data=client_device)
+
+        await self.__device_repository.insert(
+            document=kasa_device.to_dict())
 
     async def set_device_state(
         self,
@@ -203,11 +212,9 @@ class KasaDeviceService:
             device_id=device.device_id,
             preset_id=preset.preset_id)
 
-        logger.info(f'Client results: {client_results.to_dict()}')
         if isinstance(client_results, list):
-            response = [
-                res.to_dict()
-                for res in client_results]
+            response = [res.to_dict()
+                        for res in client_results]
         else:
             response = client_results.to_dict()
 
@@ -219,15 +226,15 @@ class KasaDeviceService:
     ) -> KasaDevice:
         logger.info(f'Update device: {update_request.to_dict()}')
 
-        bust_cache = TaskCollection(
+        clear_cache = TaskCollection(
             self.expire_cached_device(
                 device_id=update_request.device_id),
             self.expire_cached_device_list())
 
-        await bust_cache.run()
+        await clear_cache.run()
 
-        if update_request.device_id is None or update_request.device_id == '':
-            raise Exception('Invalid device ID')
+        if none_or_whitespace(update_request.device_id):
+            raise InvalidDeviceRequestException('No device ID was provided')
 
         device = await self.get_device(
             device_id=update_request.device_id)
@@ -238,9 +245,9 @@ class KasaDeviceService:
 
         logger.info(f'Updated device: {device.to_dict()}')
 
-        await self.__device_repository.update({
-            'device_id': update_request.device_id
-        }, device.to_dict())
+        await self.__device_repository.update(
+            selector=device.get_selector(),
+            values=device.to_dict())
 
         return device
 
@@ -249,6 +256,7 @@ class KasaDeviceService:
         device_id: str,
         region_id: str
     ) -> KasaDevice:
+
         # Expire cached device and device list
         expirations = TaskCollection(
             self.expire_cached_device(
@@ -258,7 +266,7 @@ class KasaDeviceService:
 
         logger.info(f'Set device region: {device_id}: {region_id}')
 
-        if region_id is None or region_id == '':
+        if none_or_whitespace(region_id):
             raise Exception('Must provide a region')
 
         fetch = TaskCollection(
@@ -270,46 +278,47 @@ class KasaDeviceService:
 
         region, entity = await fetch.run()
 
-        logger.info(f'Device: {entity}')
         if entity is None:
-            raise Exception(f"No device with the ID '{device_id}' exists")
+            raise DeviceNotFoundException(
+                device_id=device_id)
 
         device = KasaDevice(
             data=entity)
 
-        logger.info(f'Region: {region.to_dict()}')
-        device.region_id = region_id
+        device.set_region(
+            region_id=region_id)
 
         logger.info(
             f'Updating device: {device.device_name} to region: {region.region_name}')
 
-        await self.__device_repository.replace({
-            'device_id': device_id
-        }, device.to_dict())
+        update_result = await self.__device_repository.replace(
+            selector=device.get_selector(),
+            document=device.to_dict())
 
+        logger.info(f'Update result: {update_result.modified_count}')
         return device
 
-    async def get_devices_by_region(
-        self
-    ) -> List[Dict]:
-        logger.info('Fetching devices and regions')
+    # async def get_devices_by_region(
+    #     self
+    # ) -> List[Dict]:
+    #     logger.info('Fetching devices and regions')
 
-        fetch = TaskCollection(
-            self.__region_service.get_regions(),
-            self.get_all_devices())
+    #     fetch = TaskCollection(
+    #         self.__region_service.get_regions(),
+    #         self.get_all_devices())
 
-        regions, devices = await fetch.run()
+    #     regions, devices = await fetch.run()
 
-        results = []
-        for region in regions:
-            region_devices = where(
-                devices, lambda x: x.region_id == region.region_id)
+    #     results = []
+    #     for region in regions:
+    #         region_devices = where(
+    #             devices, lambda x: x.region_id == region.region_id)
 
-            results.append(region.to_dict() | {
-                'devices': region_devices
-            })
+    #         results.append(region.to_dict() | {
+    #             'devices': region_devices
+    #         })
 
-        return results
+    #     return results
 
     async def get_device_client_response(
         self,

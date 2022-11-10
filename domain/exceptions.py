@@ -15,6 +15,16 @@ class RequiredRouteSegmentException(Exception):
     def __init__(self, segment_name, *args: object, **kwargs) -> None:
         super().__init__(f"Route segment '{segment_name}' is required")
 
+    @staticmethod
+    def if_none(value, arg_name):
+        if value is None:
+            raise RequiredRouteSegmentException(arg_name)
+
+    @staticmethod
+    def if_none_or_whitespace(value, arg_name):
+        if none_or_whitespace(value):
+            raise RequiredRouteSegmentException(arg_name)
+
 
 class RegionNotFoundException(Exception):
     def __init__(self, region_id, *args: object) -> None:
@@ -66,6 +76,11 @@ class SceneCategoryExistsException(Exception):
     def __init__(self, scene_category_name, *args: object) -> None:
         super().__init__(
             f"A scene category with the name '{scene_category_name}' exists")
+
+
+class DeviceNotFoundException(Exception):
+    def __init__(self, device_id, *args: object) -> None:
+        super().__init__(f"No device with the ID '{device_id}' exists")
 
 
 class NullArgumentException(Exception):

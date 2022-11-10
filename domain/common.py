@@ -1,10 +1,15 @@
 import base64
-from datetime import datetime
 import hashlib
 import uuid
+from datetime import datetime
 
 from framework.serialization import Serializable
 from framework.serialization.utilities import serialize
+
+
+class Selectable:
+    def get_selector(self):
+        raise NotImplementedError()
 
 
 class Hashable:
