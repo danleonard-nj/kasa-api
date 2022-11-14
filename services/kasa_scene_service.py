@@ -214,7 +214,7 @@ class KasaSceneService:
 
         update_result = await self.__scene_repository.update(
             selector=updated_scene.get_selector(),
-            values=existing_scene.to_dict())
+            values=updated_scene.to_dict())
 
         # Expire the cached scene and scene list
         await asyncio.gather(
