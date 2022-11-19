@@ -1,0 +1,93 @@
+from datetime import datetime
+from typing import Dict
+
+from data.repositories.kasa_client_response_repository import \
+    KasaClientResponseRepository
+from domain.kasa.client_response import KasaClientResponse
+from domain.rest import UpdateClientResponseRequest
+from framework.logger import get_logger
+from framework.validators.nulls import none_or_whitespace
+from framework.serialization.utilities import serialize
+
+logger = get_logger(__name__)
+
+
+class KasaClientResponseService:
+    def __init__(
+        self,
+        client_response_repository: KasaClientResponseRepository
+    ):
+        self.__client_response_repository = client_response_repository
+
+    async def update_client_response(
+        self,
+        request: UpdateClientResponseRequest
+    ) -> Dict:
+        logger.info(f'Update client response for device: {request.device_id}')
+
+        if none_or_whitespace(request.device_id):
+            raise Exception('Device ID cannot be null')
+
+        if request.client_response is None:
+            raise Exception('Client response cannot be null')
+
+        entity = await self.__client_response_repository.get({
+            'device_id': request.device_id
+        })
+
+        if entity is None:
+            return await self.create_client_response(
+                device_id=request.device_id,
+                preset_id=request.preset_id,
+                client_response=request.client_response)
+
+        model = KasaClientResponse(
+            data=entity)
+
+        # Update the client response
+        model.client_response = request.client_response
+        model.preset_id = request.preset_id
+        model.modified_date = datetime.now()
+
+        logger.info(f'Entity: {serialize(model.to_dict())}')
+
+        # Update the record
+        result = await self.__client_response_repository.update(
+            model.get_selector(),
+            model.to_dict())
+
+        logger.info(f'Updated records: {result.acknowledged}')
+        return model
+
+    async def create_client_response(
+        self,
+        device_id: str,
+        preset_id: str,
+        client_response: Dict
+    ) -> Dict:
+        logger.info(f'Create client response record')
+
+        model = KasaClientResponse.create_client_response(
+            device_id=device_id,
+            preset_id=preset_id,
+            client_response=client_response)
+
+        await self.__client_response_repository.insert(
+            model.to_dict())
+
+        return model.to_dict()
+
+    async def get_client_response(
+        self,
+        device_id: str
+    ) -> KasaClientResponse:
+        entity = await self.__client_response_repository.get({
+            'device_id': device_id
+        })
+
+        if entity is None:
+            raise Exception(
+                f"No client response found for device with the ID '{device_id}'")
+
+        return KasaClientResponse(
+            data=entity)

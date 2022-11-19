@@ -1,0 +1,52 @@
+replicaCount: 1
+
+image:
+  repository: azureks.azurecr.io/kube-tools/kasa
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets:
+  - name: regcred
+
+nameOverride: "kasa"
+fullnameOverride: "kasa"
+
+environment:
+  envFrom:
+    - secretName: azure
+    - secretName: kasa-env
+
+probes:
+  endpoints:
+    liveness: "/api/health/alive"
+    readiness: "/api/health/ready"
+  initialDelay: 5
+  interval: 10
+  timeout: 120
+
+serviceAccount:
+  create: true
+  name: "kasa"
+
+service:
+  type: ClusterIP
+  port: 80
+  name: "kasa"
+
+ingress:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 125m
+    memory: 500Mi
+  requests:
+    cpu: 75m
+    memory: 300Mi
+    
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 85
+  targetMemoryUtilizationPercentage: 90
