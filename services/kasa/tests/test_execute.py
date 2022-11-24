@@ -1,4 +1,3 @@
-from datetime import datetime
 from unittest.mock import AsyncMock
 
 from clients.kasa_client import KasaClient
@@ -6,7 +5,6 @@ from data.repositories.kasa_device_repository import KasaDeviceRepository
 from data.repositories.kasa_preset_repository import KasaPresetRepository
 from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.exceptions import NullArgumentException
-from domain.kasa.client_response import KasaClientResponse
 from domain.kasa.scene import KasaScene
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_execution_service import KasaExecutionService

@@ -34,6 +34,10 @@ class CacheKey:
         return f'scene-{scene_id}'
 
     @staticmethod
+    def auth_token(client_name):
+        return f'client-auth-token-{client_name}'
+
+    @staticmethod
     def scene_list():
         return 'scene-list'
 
