@@ -1,17 +1,17 @@
-from unittest.mock import AsyncMock, Mock
+from datetime import datetime
+from unittest.mock import AsyncMock
 
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from data.repositories.kasa_preset_repository import KasaPresetRepository
 from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.exceptions import NullArgumentException
+from domain.kasa.client_response import KasaClientResponse
 from domain.kasa.scene import KasaScene
+from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_execution_service import KasaExecutionService
 from tests.buildup import ApplicationBase
-from framework.clients.cache_client import CacheClientAsync
-
 from tests.helpers import TestHelper
-
 
 helper = TestHelper()
 
@@ -22,9 +22,18 @@ def get_kasa_client(container):
 
 class KasaSceneExecutionServiceTests(ApplicationBase):
     def configure_services(self, service_collection):
+        client_response_service = AsyncMock()
+
+        def get_client_response_service(container):
+            return client_response_service
+
         service_collection.add_singleton(
             dependency_type=KasaClient,
             factory=get_kasa_client)
+
+        service_collection.add_singleton(
+            dependency_type=KasaClientResponseService,
+            factory=get_client_response_service)
 
     async def insert_test_scene(self, **kwargs):
         repo = self.resolve(KasaSceneRepository)
@@ -54,6 +63,10 @@ class KasaSceneExecutionServiceTests(ApplicationBase):
     async def test_execute_scene_given_scene_calls_kasa_client_for_each_device(self):
         # Arrange
         kasa_client = self.resolve(KasaClient)
+        client_response_service = self.resolve(KasaClientResponseService)
+
+        client_response_service.get_client_response.side_effect = helper.get_mock_client_response
+
         service = self.get_service()
 
         test_scene_doc = await self.insert_test_scene()

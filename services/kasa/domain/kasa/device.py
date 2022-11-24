@@ -29,20 +29,12 @@ class KasaDevice(Serializable, Selectable):
             'device_id': self.device_id
         }
 
-    @abstractmethod
-    def get_power_state(self):
-        raise NotImplementedError()
-
     def to_kasa_request(self, parameters):
         not_none(parameters, 'parameters')
 
         return KasaRequestBase(
             device_id=self.device_id,
             request_data=parameters).to_dict()
-
-    @property
-    def power_state(self):
-        return self.get_power_state()
 
     @staticmethod
     def from_kasa_device_params(data):

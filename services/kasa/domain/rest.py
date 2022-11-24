@@ -1,7 +1,6 @@
 import json
 from typing import List
 
-from framework.crypto.hashing import sha256
 from framework.serialization import Serializable
 from framework.validators.nulls import none_or_whitespace
 from pymongo.results import DeleteResult
@@ -253,31 +252,6 @@ class GetKasaDeviceStateRequest(KasaRequestBase):
         return {
             KasaRest.SYSTEM: {
                 KasaRest.GET_SYSINFO: None
-            }
-        }
-
-
-class StoreDeviceStateRequest:
-    def __init__(self, device, preset):
-        self.device = device
-        self.preset = preset
-
-
-class DeviceStateResponse(Serializable):
-    def __init__(self, live, stored):
-        self.live = live.to_dict()
-        self.stored = stored.to_dict()
-        self.live_hash = sha256(self.live)
-        self.stored_hash = sha256(self.stored)
-
-    def to_dict(self):
-        return {
-            'live': self.live,
-            'stored': self.stored,
-            'hash': {
-                'live': self.live_hash,
-                'stored': self.stored_hash,
-                'match': self.live_hash == self.stored_hash
             }
         }
 
