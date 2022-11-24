@@ -1,8 +1,9 @@
 from typing import Dict, List
+
 from data.constants import MongoConstants
 from data.repositories.async_mongo_repository import MongoRepositoryAsync
-from motor.motor_asyncio import AsyncIOMotorClient
 from framework.validators.nulls import none_or_whitespace
+from motor.motor_asyncio import AsyncIOMotorClient
 
 
 class KasaPresetRepository(MongoRepositoryAsync):

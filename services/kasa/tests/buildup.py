@@ -2,12 +2,11 @@ import os
 import unittest
 import uuid
 from abc import abstractmethod
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 from framework.clients import CacheClientAsync
 from framework.di.service_provider import ServiceCollection, ServiceProvider
 from motor.motor_asyncio import AsyncIOMotorClient
-
 from utils.provider import ContainerProvider
 
 REDIS_HOST = os.environ.get('REDIS_HOST') or 'localhost'
@@ -34,6 +33,9 @@ class ApplicationBase(unittest.IsolatedAsyncioTestCase):
 
     def guid(self):
         return str(uuid.uuid4())
+
+    def assert_kwargs(self, mock_method, func):
+        self.assertTrue(func(mock_method.call_args.kwargs))
 
     @abstractmethod
     def configure_services(self, service_collection: ServiceCollection):

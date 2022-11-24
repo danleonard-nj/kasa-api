@@ -44,7 +44,7 @@ class KasaSceneExecutionServiceTests(ApplicationBase):
         return self.resolve(KasaExecutionService)
 
     async def insert_test_preset(self, **kwargs):
-        preset = helper.get_test_preset(**kwargs)
+        preset = helper.get_test_create_preset_request(**kwargs)
         repo = self.resolve(KasaPresetRepository)
         await repo.insert(preset)
 

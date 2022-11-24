@@ -80,7 +80,7 @@ class KasaPresetSevice:
 
         # Insert preset
         document = await self.__preset_repository.insert(
-            document=kasa_preset.to_json())
+            document=kasa_preset.to_dict())
 
         await self.__cache_client.set_json(
             value=document,
@@ -133,7 +133,7 @@ class KasaPresetSevice:
 
         update_result = await self.__preset_repository.update(
             selector=kasa_preset.get_selector(),
-            values=kasa_preset.to_json())
+            values=kasa_preset.to_dict())
 
         logger.info(f'Modified count: {update_result.modified_count}')
         return kasa_preset

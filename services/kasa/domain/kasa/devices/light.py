@@ -39,7 +39,7 @@ class KasaLight(KasaDevice, Hashable):
             'device_type': KasaDeviceType.KasaLight
         })
 
-    def to_json(self):
+    def to_dict(self):
         device = {
             'state': self.state,
             'hue': self.hue,

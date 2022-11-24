@@ -29,7 +29,7 @@ class TestHelper:
 
         return device | kwargs
 
-    def get_test_preset(self, **kwargs):
+    def get_test_create_preset_request(self, **kwargs):
         preset = {
             "preset_id": self.guid(),
             "preset_name": self.guid(),
