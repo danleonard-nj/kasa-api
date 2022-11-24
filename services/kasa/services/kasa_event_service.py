@@ -6,7 +6,7 @@ from framework.logger import get_logger
 from framework.validators.nulls import none_or_whitespace
 
 from clients.identity_client import IdentityClient
-from clients.service_bus import QueueClient
+from clients.service_bus import EventClient
 from domain.cache import CacheKey
 from domain.events import StoreKasaClientResponseEvent
 
@@ -17,7 +17,7 @@ class KasaEventService:
     def __init__(
         self,
         configuration: Configuration,
-        queue_client: QueueClient,
+        queue_client: EventClient,
         cache_client: CacheClientAsync,
         identity_client: IdentityClient
     ):

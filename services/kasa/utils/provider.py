@@ -10,7 +10,7 @@ from quart import Quart, request
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
-from clients.service_bus import QueueClient
+from clients.service_bus import EventClient
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from data.repositories.kasa_device_repository import KasaDeviceRepository
@@ -49,7 +49,7 @@ class ContainerProvider(ProviderBase):
         # Clients
         container.add_singleton(CacheClientAsync)
         container.add_singleton(IdentityClient)
-        container.add_singleton(QueueClient)
+        container.add_singleton(EventClient)
         container.add_singleton(KasaClient)
 
         container.add_singleton(
