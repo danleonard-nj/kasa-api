@@ -1,6 +1,8 @@
+from typing import Dict, List
 from data.constants import MongoConstants
 from data.repositories.async_mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
+from framework.validators.nulls import none_or_whitespace
 
 
 class KasaPresetRepository(MongoRepositoryAsync):
@@ -24,3 +26,23 @@ class KasaPresetRepository(MongoRepositoryAsync):
             'preset_id': preset_id
         })
         return value is not None
+
+    async def get_presets(
+        self,
+        preset_ids: List[str],
+        region_id: str = None
+    ) -> List[Dict]:
+
+        query = {
+            'preset_id': {
+                '$in': preset_ids
+            }
+        }
+
+        if not none_or_whitespace(region_id):
+            query['region_id'] = region_id
+
+        results = self.collection.find(query)
+
+        return await results.to_list(
+            length=None)

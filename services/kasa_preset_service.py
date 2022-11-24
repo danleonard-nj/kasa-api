@@ -237,3 +237,18 @@ class KasaPresetSevice:
                         for preset in presets]
 
         return kasa_presets
+
+    async def get_presets(
+        self,
+        preset_ids: List[str],
+        region_id: str = None
+    ):
+
+        entities = await self.__preset_repository.get_presets(
+            preset_ids=preset_ids,
+            region_id=region_id)
+
+        presets = [KasaPreset(data=entity)
+                   for entity in entities]
+
+        return presets
