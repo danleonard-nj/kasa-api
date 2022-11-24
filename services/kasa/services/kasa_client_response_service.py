@@ -3,6 +3,7 @@ from typing import Dict
 
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
+from domain.exceptions import NullArgumentException
 from domain.kasa.client_response import KasaClientResponse
 from domain.rest import UpdateClientResponseRequest
 from framework.logger import get_logger
@@ -28,13 +29,12 @@ class KasaClientResponseService:
         device
         '''
 
+        NullArgumentException.if_none_or_whitespace(
+            request.device_id, 'device_id')
+        NullArgumentException.if_none(
+            request.client_response, 'client_response')
+
         logger.info(f'Update client response for device: {request.device_id}')
-
-        if none_or_whitespace(request.device_id):
-            raise Exception('Device ID cannot be null')
-
-        if request.client_response is None:
-            raise Exception('Client response cannot be null')
 
         entity = await self.__client_response_repository.get({
             'device_id': request.device_id
@@ -50,11 +50,8 @@ class KasaClientResponseService:
             data=entity)
 
         # Update the client response
-        model.client_response = request.client_response
-        model.preset_id = request.preset_id
-        model.modified_date = datetime.now()
-
-        logger.info(f'Entity: {serialize(model.to_dict())}')
+        model.update_client_response(
+            request=request)
 
         # Update the record
         result = await self.__client_response_repository.update(

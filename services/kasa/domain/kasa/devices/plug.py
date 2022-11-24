@@ -1,7 +1,5 @@
 from typing import Dict
 
-from framework.validators.nulls import not_none
-
 from domain.common import Hashable
 from domain.constants import KasaDeviceType, KasaRest
 from domain.exceptions import NullArgumentException
@@ -59,7 +57,3 @@ class KasaPlug(KasaDevice, Hashable):
                 }
             }
         })
-
-    @property
-    def power_state(self):
-        return self.state

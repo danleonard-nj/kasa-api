@@ -1,5 +1,3 @@
-from abc import abstractmethod
-
 from framework.serialization import Serializable
 from framework.validators.nulls import not_none
 
@@ -19,7 +17,7 @@ class KasaDevice(Serializable, Selectable):
         not_none(self.device_id, 'device_id')
         not_none(self.device_name, 'device_name')
 
-        self._validate_device_type(
+        self.__validate_device_type(
             device_type=self.device_type)
 
     def get_selector(
@@ -52,7 +50,7 @@ class KasaDevice(Serializable, Selectable):
             k: v for k, v in self.__dict__.items()
         }
 
-    def _validate_device_type(self, device_type):
+    def __validate_device_type(self, device_type):
         not_none(device_type, 'device_type')
 
         if device_type not in [KasaDeviceType.KasaLight, KasaDeviceType.KasaPlug]:

@@ -28,10 +28,6 @@ class KasaPreset(Serializable, Cacheable, Selectable):
         NullArgumentException.if_none(
             self.definition, 'definition')
 
-    @classmethod
-    def cache_key(cls, object_id):
-        return f'kasa-preset-{object_id}'
-
     def get_selector(self):
         return {
             'preset_id': self.preset_id

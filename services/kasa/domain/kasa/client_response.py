@@ -2,6 +2,8 @@ from datetime import datetime
 import uuid
 from framework.serialization import Serializable
 
+from domain.rest import UpdateClientResponseRequest
+
 
 class KasaClientResponse(Serializable):
     def __init__(self, data):
@@ -16,6 +18,14 @@ class KasaClientResponse(Serializable):
         return {
             'client_response_id': self.client_response_id
         }
+
+    def update_client_response(
+        self,
+        request: UpdateClientResponseRequest
+    ):
+        self.client_response = request.client_response
+        self.preset_id = request.preset_id
+        self.modified_date = datetime.now()
 
     @staticmethod
     def create_client_response(

@@ -65,6 +65,12 @@ class SceneNotFoundException(NotFoundException):
             object_id=scene_id)
 
 
+class SceneExistsException(Exception):
+    def __init__(self, scene_name, *args: object) -> None:
+        super().__init__(
+            f'Scene with the name {scene_name} already exists')
+
+
 class SceneCategoryNotFoundException(NotFoundException):
     def __init__(self, scene_category_id, *args: object) -> None:
         super().__init__(
