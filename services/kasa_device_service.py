@@ -10,7 +10,9 @@ from framework.validators.nulls import none_or_whitespace
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from domain.cache import CacheExpiration, CacheKey
-from domain.exceptions import DeviceNotFoundException, InvalidDeviceRequestException, NullArgumentException, RegionNotFoundException
+from domain.exceptions import (DeviceNotFoundException,
+                               InvalidDeviceRequestException,
+                               NullArgumentException, RegionNotFoundException)
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import KasaRequest, KasaResponse, UpdateDeviceRequest
@@ -227,8 +229,6 @@ class KasaDeviceService:
     ) -> KasaDevice:
         '''
         Update a known Kasa device
-
-        `update_request`: update request
         '''
 
         NullArgumentException.if_none(update_request, 'update_request')
@@ -271,9 +271,6 @@ class KasaDeviceService:
         '''
         Associate a known Kasa device to a
         device region
-
-        `device_id`: Kasa device ID
-        `region_id`: Device region ID
         '''
 
         # Expire cached device and device list
@@ -358,7 +355,8 @@ class KasaDeviceService:
         NullArgumentException.if_none(device_ids, 'device_ids')
 
         entities = await self.__device_repository.get_devices(
-            device_ids=device_ids)
+            device_ids=device_ids,
+            region_id=region_id)
 
         devices = [KasaDevice(data=entity)
                    for entity in entities]

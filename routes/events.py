@@ -1,7 +1,8 @@
 
-from domain.rest import UpdateClientResponseRequest
 from framework.rest.blueprints.meta import MetaBlueprint
 from quart import request
+
+from domain.rest import UpdateClientResponseRequest
 from services.kasa_client_response_service import KasaClientResponseService
 
 events_bp = MetaBlueprint('events_bp', __name__)

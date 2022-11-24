@@ -23,6 +23,11 @@ class KasaClientResponseService:
         self,
         request: UpdateClientResponseRequest
     ) -> Dict:
+        '''
+        Update client response record for a given
+        device
+        '''
+
         logger.info(f'Update client response for device: {request.device_id}')
 
         if none_or_whitespace(request.device_id):
@@ -65,6 +70,10 @@ class KasaClientResponseService:
         preset_id: str,
         client_response: Dict
     ) -> Dict:
+        '''
+        Create a client response for a given device
+        '''
+
         logger.info(f'Create client response record')
 
         model = KasaClientResponse.create_client_response(
@@ -81,6 +90,10 @@ class KasaClientResponseService:
         self,
         device_id: str
     ) -> KasaClientResponse:
+        '''
+        Get the client response record for a given device
+        '''
+
         entity = await self.__client_response_repository.get({
             'device_id': device_id
         })

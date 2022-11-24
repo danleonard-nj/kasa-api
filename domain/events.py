@@ -4,8 +4,6 @@ from azure.servicebus import ServiceBusMessage
 from framework.serialization.utilities import serialize
 
 from domain.common import Serializable
-from domain.kasa.devices.state import StoredDeviceState
-from domain.rest import UpdateClientResponseRequest
 
 
 class ApiMessage(Serializable):
