@@ -10,7 +10,7 @@ from framework.validators.nulls import none_or_whitespace
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from domain.cache import CacheExpiration, CacheKey
-from domain.exceptions import DeviceNotFoundException, InvalidDeviceRequestException, NullArgumentException
+from domain.exceptions import DeviceNotFoundException, InvalidDeviceRequestException, NullArgumentException, RegionNotFoundException
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import KasaRequest, KasaResponse, UpdateDeviceRequest
@@ -212,6 +212,7 @@ class KasaDeviceService:
             device_id=device.device_id,
             preset_id=preset.preset_id)
 
+        # TODO: Clear this up, do these cases actually happen?
         if isinstance(client_results, list):
             response = [res.to_dict()
                         for res in client_results]
@@ -224,8 +225,18 @@ class KasaDeviceService:
         self,
         update_request: UpdateDeviceRequest
     ) -> KasaDevice:
+        '''
+        Update a known Kasa device
+
+        `update_request`: update request
+        '''
+
+        NullArgumentException.if_none(update_request, 'update_request')
+
         logger.info(f'Update device: {update_request.to_dict()}')
 
+        # Expire cached device list and cached device that
+        # we're updating heres
         clear_cache = TaskCollection(
             self.expire_cached_device(
                 device_id=update_request.device_id),
@@ -239,6 +250,7 @@ class KasaDeviceService:
         device = await self.get_device(
             device_id=update_request.device_id)
 
+        # TODO: Move update logic into device class
         device.device_name = update_request.device_name
         device.device_type = update_request.device_type
         device.region_id = update_request.region_id
@@ -256,8 +268,20 @@ class KasaDeviceService:
         device_id: str,
         region_id: str
     ) -> KasaDevice:
+        '''
+        Associate a known Kasa device to a
+        device region
+
+        `device_id`: Kasa device ID
+        `region_id`: Device region ID
+        '''
 
         # Expire cached device and device list
+
+        NullArgumentException.if_none_or_whitespace(region_id, 'region_id')
+        NullArgumentException.if_none_or_whitespace(device_id, 'device_id')
+
+        # Expire cached device list
         expirations = TaskCollection(
             self.expire_cached_device(
                 device_id=device_id),
@@ -265,9 +289,6 @@ class KasaDeviceService:
         await expirations.run()
 
         logger.info(f'Set device region: {device_id}: {region_id}')
-
-        if none_or_whitespace(region_id):
-            raise Exception('Must provide a region')
 
         fetch = TaskCollection(
             self.__region_service.get_region(
@@ -278,9 +299,15 @@ class KasaDeviceService:
 
         region, entity = await fetch.run()
 
+        # Verify provided device exists
         if entity is None:
             raise DeviceNotFoundException(
                 device_id=device_id)
+
+        # Verify provided region exists
+        if region is None:
+            raise RegionNotFoundException(
+                region_id=region_id)
 
         device = KasaDevice(
             data=entity)
@@ -298,34 +325,18 @@ class KasaDeviceService:
         logger.info(f'Update result: {update_result.modified_count}')
         return device
 
-    # async def get_devices_by_region(
-    #     self
-    # ) -> List[Dict]:
-    #     logger.info('Fetching devices and regions')
-
-    #     fetch = TaskCollection(
-    #         self.__region_service.get_regions(),
-    #         self.get_all_devices())
-
-    #     regions, devices = await fetch.run()
-
-    #     results = []
-    #     for region in regions:
-    #         region_devices = where(
-    #             devices, lambda x: x.region_id == region.region_id)
-
-    #         results.append(region.to_dict() | {
-    #             'devices': region_devices
-    #         })
-
-    #     return results
-
     async def get_device_client_response(
         self,
         device_id: str
     ) -> Dict:
-        if none_or_whitespace(device_id):
-            raise Exception('Device ID cannot be null')
+        '''
+        Get the stored client response for a
+        known Kasa device
+
+        `device_id`: Kasa device ID
+        '''
+
+        NullArgumentException.if_none_or_whitespace(device_id)
 
         client_response = await self.__client_response_service.get_client_response(
             device_id=device_id)
@@ -334,3 +345,22 @@ class KasaDeviceService:
             raise Exception('No client response exists for device')
 
         return client_response.to_dict()
+
+    async def get_devices(
+        self,
+        device_ids: List[str],
+        region_id: str = None
+    ):
+        '''
+        Get devices from a list of device IDs
+        '''
+
+        NullArgumentException.if_none(device_ids, 'device_ids')
+
+        entities = await self.__device_repository.get_devices(
+            device_ids=device_ids)
+
+        devices = [KasaDevice(data=entity)
+                   for entity in entities]
+
+        return devices
