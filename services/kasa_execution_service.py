@@ -44,31 +44,6 @@ class KasaExecutionService:
         self.__cache_client = cache_client
         self.__kasa_client = kasa_client
 
-    # async def __get_token(
-    #     self
-    # ) -> str:
-    #     '''
-    #     Get a Azure AD token to pass to outbound events
-    #     to allow the event handler to call back to the
-    #     Kasa service
-    #     '''
-
-    #     logger.info(f'Fetching token from cache')
-    #     token = await self.__cache_client.get_cache(
-    #         key=CacheKey.event_token())
-
-    #     if token is None:
-    #         logger.info(f'No cached token, fetching from client')
-    #         token = await self.__identity_client.get_token(
-    #             client_name='kasa-api')
-
-    #         await self.__cache_client.set_cache(
-    #             key=CacheKey.event_token(),
-    #             value=token,
-    #             ttl=CacheExpiration.minutes(45))
-
-    #     return token
-
     async def __get_client_responses(
         self,
         device_ids: List[str]

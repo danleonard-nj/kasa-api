@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from azure.servicebus import ServiceBusMessage
 from framework.serialization.utilities import serialize
@@ -7,10 +7,12 @@ from domain.common import Serializable
 
 
 class ApiMessage(Serializable):
-    def __init__(self,
-                 base_url: str,
-                 method: str,
-                 token: str):
+    def __init__(
+        self,
+        base_url: str,
+        method: str,
+        token: str
+    ):
         self.endpoint = self.get_endpoint(
             base_url=base_url)
 
@@ -19,21 +21,35 @@ class ApiMessage(Serializable):
         self.headers = self.get_headers(
             token=token)
 
-    def get_delay(_timedelta):
+    def get_delay(
+        _timedelta
+    ):
         return None
 
-    def get_body(self) -> dict:
+    def get_body(
+        self
+    ) -> dict:
         pass
 
-    def get_endpoint(self, base_url) -> str:
+    def get_endpoint(
+        self,
+        base_url
+    ) -> str:
         pass
 
-    def get_headers(self, token) -> str:
+    def get_headers(
+        self,
+        token: str
+    ) -> str:
+
         return {
             'Authorization': f'Bearer {token}'
         }
 
-    def to_service_bus_message(self) -> ServiceBusMessage:
+    def to_service_bus_message(
+        self
+    ) -> ServiceBusMessage:
+
         message = ServiceBusMessage(
             body=serialize({
                 'endpoint': self.endpoint,
@@ -66,11 +82,6 @@ class StoreKasaClientResponseEvent(ApiMessage):
             base_url,
             'POST',
             token)
-
-    def get_delay(
-        _timedelta
-    ):
-        return timedelta(seconds=5)
 
     def get_body(
         self
