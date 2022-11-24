@@ -132,6 +132,7 @@ class KasaPresetSevice:
 
         # Update the preset
         logger.info(f'Preset name: {kasa_preset.preset_name}')
+
         update_result = await self.__preset_repository.update(
             selector=kasa_preset.get_selector(),
             values=kasa_preset.to_json())

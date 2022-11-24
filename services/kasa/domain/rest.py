@@ -3,8 +3,8 @@ from typing import List
 
 from framework.crypto.hashing import sha256
 from framework.serialization import Serializable
+from framework.validators.nulls import none_or_whitespace
 from pymongo.results import DeleteResult
-from utils.helpers import none_or_whitespace
 
 from domain.constants import KasaRequestMethod, KasaRest
 from domain.exceptions import RequiredFieldException

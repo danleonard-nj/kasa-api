@@ -1,13 +1,14 @@
 from typing import List
 
+from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
+
 from data.repositories.kasa_region_repository import KasaRegionRepository
 from domain.common import KasaRegion
 from domain.exceptions import (InvalidRegionException,
                                InvalidRegionIdException, RegionExistsException,
                                RegionNotFoundException)
 from domain.rest import CreateRegionRequest
-from framework.logger.providers import get_logger
-from utils.helpers import none_or_whitespace
 
 logger = get_logger(__name__)
 
