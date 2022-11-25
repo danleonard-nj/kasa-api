@@ -1,17 +1,16 @@
 from dotenv import load_dotenv
 from framework.abstractions.abstract_request import RequestContextProvider
+from framework.dependency_injection.provider import InternalProvider
 from framework.serialization.serializer import configure_serializer
 from framework.swagger.quart.swagger import Swagger
 from quart import Quart
-
 from routes.devices import devices_bp
+from routes.events import events_bp
 from routes.health import health_bp
 from routes.preset import preset_bp
 from routes.region import region_bp
 from routes.scene import scene_bp
-from routes.events import events_bp
 from utils.provider import ContainerProvider
-from framework.dependency_injection.provider import InternalProvider
 
 load_dotenv()
 app = Quart(__name__)

@@ -10,7 +10,7 @@ from quart import Quart, request
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
-from clients.service_bus import QueueClient
+from clients.service_bus import EventClient
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from data.repositories.kasa_device_repository import KasaDeviceRepository
@@ -49,7 +49,7 @@ class ContainerProvider(ProviderBase):
         # Clients
         container.add_singleton(CacheClientAsync)
         container.add_singleton(IdentityClient)
-        container.add_singleton(QueueClient)
+        container.add_singleton(EventClient)
         container.add_singleton(KasaClient)
 
         container.add_singleton(
@@ -72,34 +72,9 @@ class ContainerProvider(ProviderBase):
         container.add_singleton(KasaSceneService)
         container.add_singleton(KasaDeviceService)
         container.add_singleton(KasaSceneCategoryService)
-        # container.add_singleton(KasaHistoryService)
         container.add_singleton(KasaExecutionService)
         container.add_singleton(KasaRegionService)
         container.add_singleton(KasaEventService)
         container.add_singleton(KasaClientResponseService)
 
         return container
-
-
-def add_container_hook(app: Quart):
-    def inject_container():
-        RequestContextProvider.initialize_provider(
-            app=app)
-
-        container: Container = ContainerProvider.get_container()
-        container.create_scope()
-
-        if request.view_args != None:
-            request.view_args['container'] = container
-
-    def dispose_scope(response):
-        container: Container = ContainerProvider.get_container()
-        container.dispose_scope()
-        return response
-
-    app.before_request_funcs.setdefault(
-        None, []).append(
-            inject_container)
-
-    app.after_request_funcs.setdefault(
-        None, []).append(dispose_scope)
