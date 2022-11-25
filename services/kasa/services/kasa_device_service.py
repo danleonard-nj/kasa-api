@@ -333,7 +333,7 @@ class KasaDeviceService:
         `device_id`: Kasa device ID
         '''
 
-        NullArgumentException.if_none_or_whitespace(device_id)
+        NullArgumentException.if_none_or_whitespace(device_id, 'device_id')
 
         client_response = await self.__client_response_service.get_client_response(
             device_id=device_id)

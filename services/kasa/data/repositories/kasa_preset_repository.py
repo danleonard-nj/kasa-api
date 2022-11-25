@@ -29,8 +29,7 @@ class KasaPresetRepository(MongoRepositoryAsync):
 
     async def get_presets(
         self,
-        preset_ids: List[str],
-        region_id: str = None
+        preset_ids: List[str]
     ) -> List[Dict]:
 
         query = {
@@ -38,9 +37,6 @@ class KasaPresetRepository(MongoRepositoryAsync):
                 '$in': preset_ids
             }
         }
-
-        if not none_or_whitespace(region_id):
-            query['region_id'] = region_id
 
         results = self.collection.find(query)
 

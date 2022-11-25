@@ -1,14 +1,12 @@
-from datetime import datetime
 from typing import Dict
+
+from framework.logger import get_logger
 
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from domain.exceptions import NullArgumentException
 from domain.kasa.client_response import KasaClientResponse
 from domain.rest import UpdateClientResponseRequest
-from framework.logger import get_logger
-from framework.validators.nulls import none_or_whitespace
-from framework.serialization.utilities import serialize
 
 logger = get_logger(__name__)
 

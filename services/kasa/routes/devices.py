@@ -162,16 +162,6 @@ async def set_device_region(container, device_id, region_id):
     return result.to_dict()
 
 
-# @devices_bp.configure('/api/device/region', methods=['GET'], auth_scheme='read')
-# async def get_device_regions(container):
-#     kasa_device_service: KasaDeviceService = container.resolve(
-#         KasaDeviceService)
-
-#     result = await kasa_device_service.get_devices_by_region()
-
-#     return result
-
-
 @devices_bp.configure('/api/device/<id>/response', methods=['GET'], auth_scheme='read')
 async def get_device_client_response(container, id):
     kasa_device_service: KasaDeviceService = container.resolve(

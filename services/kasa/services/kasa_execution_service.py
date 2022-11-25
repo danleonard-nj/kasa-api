@@ -81,8 +81,7 @@ class KasaExecutionService:
                 device_ids=scene_mapping.device_ids,
                 region_id=region_id),
             self.__preset_service.get_presets(
-                preset_ids=scene_mapping.preset_ids,
-                region_id=region_id),
+                preset_ids=scene_mapping.preset_ids),
             self.__get_client_responses(
                 device_ids=scene_mapping.device_ids
             ))
