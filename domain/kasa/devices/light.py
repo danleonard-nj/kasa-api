@@ -49,6 +49,9 @@ class KasaLight(KasaDevice, Hashable):
 
         return super().to_dict() | device
 
+    def get_power_state(self):
+        return self.state
+
     @staticmethod
     def from_kasa_response(data: KasaResponse):
         not_none(data, 'data')

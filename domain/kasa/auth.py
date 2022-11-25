@@ -9,11 +9,7 @@ class AdRole:
     EXECUTE = 'Kasa.Execute'
 
 
-def contains_role(
-    token: str,
-    role: str
-) -> bool:
-
+def contains_role(token, role):
     roles = token.get('roles')
     if roles is None or role not in roles:
         return False

@@ -1,10 +1,8 @@
-from typing import Dict
-
 from domain.common import Hashable
 from domain.constants import KasaDeviceType, KasaRest
-from domain.exceptions import NullArgumentException
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
+from framework.validators.nulls import not_none
 
 
 class KasaPlug(KasaDevice, Hashable):
@@ -23,33 +21,37 @@ class KasaPlug(KasaDevice, Hashable):
             'device_type': KasaDeviceType.KasaPlug
         })
 
+    def get_power_state(self):
+        not_none(self.state, 'state')
+
+        return self.state
+
+    def to_json(self):
+        device = {
+            'state': self.state
+        }
+
+        return super().to_dict() | device
+
     @staticmethod
-    def from_kasa_response(
-        data: KasaResponse
-    ) -> 'KasaPlug':
+    def from_kasa_response(data: KasaResponse):
+        not_none(data, 'data')
 
-        NullArgumentException.if_none(data, 'data')
+        if data.has_result:
+            info = data.result.get(
+                KasaRest.RESPONSE_DATA).get(
+                    KasaRest.SYSTEM).get(
+                        KasaRest.GET_SYSINFO)
 
-        if not data.has_result:
-            return
+            device = KasaDevice.from_kasa_device_params(
+                data=info)
 
-        info = data.result.get(
-            KasaRest.RESPONSE_DATA).get(
-                KasaRest.SYSTEM).get(
-                    KasaRest.GET_SYSINFO)
+            return KasaPlug(
+                device_id=device.device_id,
+                device_name=device.device_name,
+                state=info.get(KasaRest.RELAY_STATE) == 1)
 
-        device = KasaDevice.from_kasa_device_params(
-            data=info)
-
-        return KasaPlug(
-            device_id=device.device_id,
-            device_name=device.device_name,
-            state=info.get(KasaRest.RELAY_STATE) == 1)
-
-    def to_kasa_request(
-        self
-    ) -> Dict:
-
+    def to_kasa_request(self):
         return super().to_kasa_request({
             KasaRest.SYSTEM: {
                 KasaRest.SET_RELAY_STATE: {
@@ -57,3 +59,7 @@ class KasaPlug(KasaDevice, Hashable):
                 }
             }
         })
+
+    @property
+    def power_state(self):
+        return self.state

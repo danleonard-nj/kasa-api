@@ -6,8 +6,7 @@ from framework.logger.providers import get_logger
 
 from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.cache import CacheExpiration, CacheKey
-from domain.exceptions import (NullArgumentException, SceneExistsException,
-                               SceneNotFoundException)
+from domain.exceptions import NullArgumentException, SceneNotFoundException
 from domain.kasa.scene import KasaScene
 from domain.rest import (CreateSceneRequest, MappedSceneRequest,
                          RunSceneRequest, UpdateSceneRequest)
@@ -38,12 +37,14 @@ class KasaSceneService:
         NullArgumentException.if_none_or_whitespace(
             scene_id, 'scene_id')
 
+        cache_key = KasaScene.cache_key(
+            object_id=scene_id)
+
         logger.info(f'Expire cached scene: {scene_id}')
+        logger.info(f'Cache key: {cache_key}')
 
         await self.__cache_client.delete_key(
-            key=CacheKey.scene_key(
-                scene_id=scene_id
-            ))
+            key=cache_key)
 
     async def __expire_cached_scene_list(
         self
@@ -78,20 +79,26 @@ class KasaSceneService:
 
         # Throw if it does
         if scene_exists:
-            raise SceneExistsException(
-                scene_name=request.scene_name)
+            raise Exception(
+                f'Scene with the name {request.scene_name} already exists')
 
         kasa_scene = KasaScene.create_scene(
             data=request.to_dict())
 
+        logger.info('Inserting scene')
         await self.__scene_repository.insert(
             document=kasa_scene.to_dict())
 
+        cache_key = kasa_scene.cache_key(
+            object_id=kasa_scene.scene_id)
+
+        logger.info(f'Caching created scene: {kasa_scene.scene_id}')
+        logger.info(f'Scene cache key: {cache_key}')
+
         await self.__cache_client.set_json(
+            key=cache_key,
             value=kasa_scene.to_dict(),
-            ttl=CacheExpiration.days(7),
-            key=CacheKey.scene_key(
-                scene_id=kasa_scene.scene_id))
+            ttl=CacheExpiration.days(7))
 
         return kasa_scene
 
@@ -106,13 +113,15 @@ class KasaSceneService:
         NullArgumentException.if_none_or_whitespace(
             scene_id, 'scene_id')
 
+        cache_key = KasaScene.cache_key(
+            object_id=scene_id)
+
         logger.info(f'Get scene: {scene_id}')
+        logger.info(f'Cache key: {cache_key}')
 
         # Attempt to fetch the scene from cache
         scene = await self.__cache_client.get_json(
-            key=CacheKey.scene_key(
-                scene_id=scene_id
-            ))
+            key=cache_key)
 
         if scene is None:
             logger.info(f'No cached value, fetching scene')
@@ -122,10 +131,8 @@ class KasaSceneService:
 
             await self.__cache_client.set_json(
                 ttl=CacheExpiration.days(7),
-                value=scene,
-                key=CacheKey.scene_key(
-                    scene_id=scene_id
-                ))
+                key=cache_key,
+                value=scene)
 
         # Throw if the scene is not found
         if scene is None:
