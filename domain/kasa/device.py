@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 from framework.serialization import Serializable
 from framework.validators.nulls import not_none
 
@@ -17,7 +19,7 @@ class KasaDevice(Serializable, Selectable):
         not_none(self.device_id, 'device_id')
         not_none(self.device_name, 'device_name')
 
-        self.__validate_device_type(
+        self._validate_device_type(
             device_type=self.device_type)
 
     def get_selector(
@@ -27,12 +29,20 @@ class KasaDevice(Serializable, Selectable):
             'device_id': self.device_id
         }
 
+    @abstractmethod
+    def get_power_state(self):
+        raise NotImplementedError()
+
     def to_kasa_request(self, parameters):
         not_none(parameters, 'parameters')
 
         return KasaRequestBase(
             device_id=self.device_id,
             request_data=parameters).to_dict()
+
+    @property
+    def power_state(self):
+        return self.get_power_state()
 
     @staticmethod
     def from_kasa_device_params(data):
@@ -50,7 +60,7 @@ class KasaDevice(Serializable, Selectable):
             k: v for k, v in self.__dict__.items()
         }
 
-    def __validate_device_type(self, device_type):
+    def _validate_device_type(self, device_type):
         not_none(device_type, 'device_type')
 
         if device_type not in [KasaDeviceType.KasaLight, KasaDeviceType.KasaPlug]:
