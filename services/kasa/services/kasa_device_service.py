@@ -387,7 +387,7 @@ class KasaDeviceService:
         ) for device_id in device_ids]
 
         logger.info(f'Purging {len(keys)} cached devices')
-        await self.__cache_client.client.delete(*keys)
+        await self.__cache_client.__client.delete(*keys)
 
         return {
             'keys': keys
@@ -399,12 +399,12 @@ class KasaDeviceService:
     ):
         logger.info(f'Clearing all distributed service cache')
 
-        keys = await self.__cache_client.client.keys('*')
+        keys = await self.__cache_client.__client.keys('*')
         logger.info(f'Keys to purge: {len(keys or [])}')
 
         if not any(keys):
             return list()
 
-        await self.__cache_client.client.delete(*keys)
+        await self.__cache_client.__client.delete(*keys)
 
         return keys
