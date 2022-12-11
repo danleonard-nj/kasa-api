@@ -1,6 +1,6 @@
 
 from framework.auth.azure import AzureAd
-from framework.clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
 from framework.di.service_collection import ServiceCollection
 from framework.di.static_provider import ProviderBase
@@ -75,6 +75,8 @@ class ContainerProvider(ProviderBase):
         container = ServiceCollection()
 
         container.add_singleton(Configuration)
+        register_clients(container)
+
         container.add_singleton(
             dependency_type=AsyncIOMotorClient,
             factory=configure_mongo_client)
@@ -82,7 +84,6 @@ class ContainerProvider(ProviderBase):
             dependency_type=AzureAd,
             factory=configure_azure_ad)
 
-        register_clients(container)
         register_repositories(container)
         register_services(container)
         register_providers(container)

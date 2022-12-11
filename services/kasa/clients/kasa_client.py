@@ -6,7 +6,8 @@ from domain.rest import (GetDevicesRequest, KasaGetDevicesResponse,
                          GetKasaDeviceStateRequest, KasaResponse,
                          KasaTokenRequest, KasaTokenResponse)
 from framework.caching import MemoryCache
-from framework.clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
 from framework.clients.http_client import HttpClient
 from framework.configuration.configuration import Configuration
 from framework.logger.providers import get_logger

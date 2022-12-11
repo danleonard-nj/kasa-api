@@ -1,4 +1,4 @@
-from framework.clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
 from framework.clients.http_client import HttpClient
 from framework.configuration.configuration import Configuration
 from framework.constants.constants import ConfigurationKey

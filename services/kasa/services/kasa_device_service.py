@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
 from deprecated import deprecated
-from framework.clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
 from framework.validators.nulls import none_or_whitespace
@@ -402,5 +402,9 @@ class KasaDeviceService:
         keys = await self.__cache_client.client.keys('*')
         logger.info(f'Keys to purge: {len(keys or [])}')
 
+        if not any(keys):
+            return list()
+
         await self.__cache_client.client.delete(*keys)
+
         return keys

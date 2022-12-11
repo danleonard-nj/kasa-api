@@ -1,6 +1,6 @@
 from typing import List
 
-from framework.clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
 

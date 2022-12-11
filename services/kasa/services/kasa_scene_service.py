@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Union
 
-from framework.clients.cache_client import CacheClientAsync
+from clients.cache_client import CacheClientAsync
 from framework.logger.providers import get_logger
 
 from data.repositories.kasa_scene_repository import KasaSceneRepository
