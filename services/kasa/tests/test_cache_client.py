@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from clients.cache_client import CacheClientAsync
 import uuid
 import aioredis
+import os
 
 
 class CacheClientTests(IsolatedAsyncioTestCase):
@@ -16,7 +17,7 @@ class CacheClientTests(IsolatedAsyncioTestCase):
     def get_cache_client(self):
         configuration = Mock()
         configuration.redis = {
-            'host': 'localhost',
+            'host': os.environ['REDIS_HOST'],
             'port': 6379
         }
 
