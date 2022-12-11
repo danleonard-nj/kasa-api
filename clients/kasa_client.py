@@ -2,7 +2,7 @@ import asyncio
 
 from domain.cache import CacheKey
 from domain.constants import SemaphoreDefault
-from domain.rest import (GetDevicesRequest, GetDevicesResponse,
+from domain.rest import (GetDevicesRequest, KasaGetDevicesResponse,
                          GetKasaDeviceStateRequest, KasaResponse,
                          KasaTokenRequest, KasaTokenResponse)
 from framework.caching import MemoryCache
@@ -136,7 +136,7 @@ class KasaClient:
 
     async def get_devices(
         self
-    ) -> GetDevicesResponse:
+    ) -> KasaGetDevicesResponse:
         '''
         Get a list of the Kasa devices
         '''
@@ -147,7 +147,7 @@ class KasaClient:
         content = await self.__send_request(
             json=request.to_dict())
 
-        response = GetDevicesResponse(
+        response = KasaGetDevicesResponse(
             data=content)
 
         return response

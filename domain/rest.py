@@ -1,10 +1,9 @@
 import json
-from typing import List
+from typing import Dict, List
 
-from framework.crypto.hashing import sha256
 from framework.serialization import Serializable
+from framework.validators.nulls import none_or_whitespace
 from pymongo.results import DeleteResult
-from utils.helpers import none_or_whitespace
 
 from domain.constants import KasaRequestMethod, KasaRest
 from domain.exceptions import RequiredFieldException
@@ -218,7 +217,7 @@ class DeleteResponse(Serializable):
         self.acknowledged = delete_result.acknowledged
 
 
-class GetDevicesResponse:
+class KasaGetDevicesResponse(Serializable):
     def __init__(
         self,
         data: dict
@@ -231,6 +230,24 @@ class GetDevicesResponse:
             KasaRest.DEVICE_LIST)
             if self.response.has_result
             else list())
+
+
+class SetDevicePresetResponse(Serializable):
+    def __init__(
+        self,
+        kasa_request,
+        kasa_response
+    ):
+        self.kasa_request = kasa_request
+        self.kasa_response = kasa_response
+
+    def to_dict(
+        self
+    ) -> Dict:
+        return {
+            'request': self.kasa_request.to_dict(),
+            'response': self.kasa_response.to_dict()
+        }
 
 
 class KasaTokenResponse(KasaResponse):
@@ -253,31 +270,6 @@ class GetKasaDeviceStateRequest(KasaRequestBase):
         return {
             KasaRest.SYSTEM: {
                 KasaRest.GET_SYSINFO: None
-            }
-        }
-
-
-class StoreDeviceStateRequest:
-    def __init__(self, device, preset):
-        self.device = device
-        self.preset = preset
-
-
-class DeviceStateResponse(Serializable):
-    def __init__(self, live, stored):
-        self.live = live.to_dict()
-        self.stored = stored.to_dict()
-        self.live_hash = sha256(self.live)
-        self.stored_hash = sha256(self.stored)
-
-    def to_dict(self):
-        return {
-            'live': self.live,
-            'stored': self.stored,
-            'hash': {
-                'live': self.live_hash,
-                'stored': self.stored_hash,
-                'match': self.live_hash == self.stored_hash
             }
         }
 

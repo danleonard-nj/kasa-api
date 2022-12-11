@@ -1,6 +1,7 @@
-
-
 import uuid
+from datetime import datetime
+
+from domain.kasa.client_response import KasaClientResponse
 
 
 class TestHelper:
@@ -58,3 +59,13 @@ class TestHelper:
         }
 
         return scene | kwargs
+
+    def get_mock_client_response(self, device_id):
+        return KasaClientResponse({
+            'client_response_id': self.guid(),
+            'device_id': device_id,
+            'preset_id': self.guid(),
+            'client_response': dict(),
+            'created_date': datetime.now(),
+            'modified_date': datetime.now()
+        })

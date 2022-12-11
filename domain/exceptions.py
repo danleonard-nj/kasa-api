@@ -46,6 +46,12 @@ class InvalidRegionException(Exception):
         super().__init__(f"Region is not valid: {message}")
 
 
+class NoDevicesDefinedForRegionException(Exception):
+    def __init__(self, region_id, *args: object) -> None:
+        super().__init__(
+            f"No devices are defined for region with the ID '{region_id}'")
+
+
 class InvalidDeviceRequestException(Exception):
     def __init__(self, message, *args: object, **kwargs) -> None:
         super().__init__(f"Device request is not valid: {message}")
@@ -63,6 +69,12 @@ class SceneNotFoundException(NotFoundException):
         super().__init__(
             object_name='scene',
             object_id=scene_id)
+
+
+class SceneExistsException(Exception):
+    def __init__(self, scene_name, *args: object) -> None:
+        super().__init__(
+            f'Scene with the name {scene_name} already exists')
 
 
 class SceneCategoryNotFoundException(NotFoundException):
