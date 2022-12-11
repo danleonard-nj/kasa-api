@@ -4,7 +4,6 @@ from deprecated import deprecated
 from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
-from framework.utilities.pinq import where
 from framework.validators.nulls import none_or_whitespace
 
 from clients.kasa_client import KasaClient
@@ -12,6 +11,7 @@ from data.repositories.kasa_device_repository import KasaDeviceRepository
 from domain.cache import CacheExpiration, CacheKey
 from domain.exceptions import (DeviceNotFoundException,
                                InvalidDeviceRequestException,
+                               NoDevicesDefinedForRegionException,
                                NullArgumentException, RegionNotFoundException)
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
@@ -362,3 +362,45 @@ class KasaDeviceService:
                    for entity in entities]
 
         return devices
+
+    async def clear_cache_by_region(
+        self,
+        region_id: str
+    ):
+        NullArgumentException.if_none_or_whitespace(
+            region_id,
+            'region_id')
+
+        logger.info(f'Fetching devices within region: {region_id}')
+
+        device_ids = await self.__device_repository.get_devices_ids_by_region(
+            region_id=region_id)
+
+        if not any(device_ids):
+            logger.info(f'No devices defined for region: {region_id}')
+            raise NoDevicesDefinedForRegionException(
+                region_id=region_id)
+
+        logger.info(f'Building cache keys for device IDs')
+        keys = [CacheKey.device_key(
+            device_id=device_id
+        ) for device_id in device_ids]
+
+        logger.info(f'Purging {len(keys)} cached devices')
+        await self.__cache_client.client.delete(*keys)
+
+        return {
+            'keys': keys
+        }
+
+    # TODO: Move to separate service w/ above
+    async def clear_cache(
+        self
+    ):
+        logger.info(f'Clearing all distributed service cache')
+
+        keys = await self.__cache_client.client.keys('*')
+        logger.info(f'Keys to purge: {len(keys or [])}')
+
+        await self.__cache_client.client.delete(*keys)
+        return keys

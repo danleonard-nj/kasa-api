@@ -1,9 +1,8 @@
 from datetime import datetime
 
 from azure.servicebus import ServiceBusMessage
+from framework.serialization import Serializable
 from framework.serialization.utilities import serialize
-
-from domain.common import Serializable
 
 
 class ApiMessage(Serializable):

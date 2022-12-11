@@ -8,6 +8,7 @@ from routes.devices import devices_bp
 from routes.events import events_bp
 from routes.health import health_bp
 from routes.preset import preset_bp
+from routes.cache import cache_bp
 from routes.region import region_bp
 from routes.scene import scene_bp
 from utils.provider import ContainerProvider
@@ -22,6 +23,7 @@ app.register_blueprint(scene_bp)
 app.register_blueprint(preset_bp)
 app.register_blueprint(region_bp)
 app.register_blueprint(events_bp)
+app.register_blueprint(cache_bp)
 
 
 @app.before_serving

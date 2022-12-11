@@ -1,12 +1,10 @@
 
-from framework.abstractions.abstract_request import RequestContextProvider
 from framework.auth.azure import AzureAd
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
 from framework.di.service_collection import ServiceCollection
 from framework.di.static_provider import ProviderBase
 from motor.motor_asyncio import AsyncIOMotorClient
-from quart import Quart, request
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
@@ -20,6 +18,7 @@ from data.repositories.kasa_scene_category_repository import \
     KasaSceneCategoryRepository
 from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.kasa.auth import configure_azure_ad
+from providers.kasa_device_provider import KasaDeviceProvider
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_event_service import KasaEventService
@@ -39,19 +38,43 @@ def configure_mongo_client(container):
     return client
 
 
+def register_clients(descriptors: ServiceCollection):
+    descriptors.add_singleton(CacheClientAsync)
+    descriptors.add_singleton(IdentityClient)
+    descriptors.add_singleton(EventClient)
+    descriptors.add_singleton(KasaClient)
+
+
+def register_repositories(descriptors: ServiceCollection):
+    descriptors.add_singleton(KasaSceneRepository)
+    descriptors.add_singleton(KasaDeviceRepository)
+    descriptors.add_singleton(KasaRegionRepository)
+    descriptors.add_singleton(KasaPresetRepository)
+    descriptors.add_singleton(KasaClientResponseRepository)
+    descriptors.add_singleton(KasaSceneCategoryRepository)
+
+
+def register_services(descriptors: ServiceCollection):
+    descriptors.add_singleton(KasaPresetSevice)
+    descriptors.add_singleton(KasaSceneService)
+    descriptors.add_singleton(KasaDeviceService)
+    descriptors.add_singleton(KasaSceneCategoryService)
+    descriptors.add_singleton(KasaExecutionService)
+    descriptors.add_singleton(KasaRegionService)
+    descriptors.add_singleton(KasaEventService)
+    descriptors.add_singleton(KasaClientResponseService)
+
+
+def register_providers(descriptors: ServiceCollection):
+    descriptors.add_singleton(KasaDeviceProvider)
+
+
 class ContainerProvider(ProviderBase):
     @classmethod
     def configure_container(cls):
         container = ServiceCollection()
 
         container.add_singleton(Configuration)
-
-        # Clients
-        container.add_singleton(CacheClientAsync)
-        container.add_singleton(IdentityClient)
-        container.add_singleton(EventClient)
-        container.add_singleton(KasaClient)
-
         container.add_singleton(
             dependency_type=AsyncIOMotorClient,
             factory=configure_mongo_client)
@@ -59,22 +82,9 @@ class ContainerProvider(ProviderBase):
             dependency_type=AzureAd,
             factory=configure_azure_ad)
 
-        # Repositories
-        container.add_singleton(KasaSceneRepository)
-        container.add_singleton(KasaDeviceRepository)
-        container.add_singleton(KasaRegionRepository)
-        container.add_singleton(KasaPresetRepository)
-        container.add_singleton(KasaClientResponseRepository)
-        container.add_singleton(KasaSceneCategoryRepository)
-
-        # Services
-        container.add_singleton(KasaPresetSevice)
-        container.add_singleton(KasaSceneService)
-        container.add_singleton(KasaDeviceService)
-        container.add_singleton(KasaSceneCategoryService)
-        container.add_singleton(KasaExecutionService)
-        container.add_singleton(KasaRegionService)
-        container.add_singleton(KasaEventService)
-        container.add_singleton(KasaClientResponseService)
+        register_clients(container)
+        register_repositories(container)
+        register_services(container)
+        register_providers(container)
 
         return container
