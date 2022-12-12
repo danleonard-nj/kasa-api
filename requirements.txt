@@ -1,9 +1,12 @@
-framework==0.0.2
+framework==0.0.3
 pymongo
 azure-servicebus
 swagger-gen
-azure-storage-blob
 quart
 uvloop
 uvicorn
 python-dotenv
+aioredis
+deprecated
+httpx
+motor
