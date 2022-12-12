@@ -1,0 +1,6 @@
+[
+  {
+    "source": "configs/kube-tools/kasa/config.json",
+    "target": "./services/kasa/config.json"
+  }
+]
