@@ -1,5 +1,9 @@
+framework==0.0.2
 pymongo
 azure-servicebus
 swagger-gen
 azure-storage-blob
 quart
+uvloop
+uvicorn
+python-dotenv
