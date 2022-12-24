@@ -4,7 +4,6 @@ from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from data.repositories.kasa_preset_repository import KasaPresetRepository
 from data.repositories.kasa_scene_repository import KasaSceneRepository
-from domain.exceptions import NullArgumentException
 from domain.kasa.scene import KasaScene
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_execution_service import KasaExecutionService
@@ -92,11 +91,11 @@ class KasaSceneExecutionServiceTests(ApplicationBase):
         self.assertTrue(
             kasa_client.set_device_state.call_count == len(all_device_ids))
 
-    async def test_execute_scene_fiven_no_scene_throws(self):
+    async def test_execute_scene_given_no_scene_throws(self):
         # Arrange
         service = self.get_service()
 
         # Act
-        with self.assertRaises(NullArgumentException):
+        with self.assertRaises(Exception):
             await service.execute_scene(
                 scene=None)

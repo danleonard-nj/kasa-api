@@ -1,13 +1,10 @@
 from typing import List
 
-from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
+from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
 
-from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
-from domain.cache import CacheExpiration, CacheKey
-from domain.exceptions import NullArgumentException
 from domain.kasa.client_response import KasaClientResponse
 from domain.kasa.scene import KasaScene
 from domain.rest import MappedSceneRequest
@@ -25,23 +22,17 @@ class KasaExecutionService:
         device_service: KasaDeviceService,
         preset_service: KasaPresetSevice,
         client_response_service: KasaClientResponseService,
-        identity_client: IdentityClient,
-        cache_client: CacheClientAsync,
         kasa_client: KasaClient
     ):
-        NullArgumentException.if_none(device_service, 'device_service')
-        NullArgumentException.if_none(preset_service, 'preset_service')
-        NullArgumentException.if_none(identity_client, 'identity_client')
-        NullArgumentException.if_none(cache_client, 'cache_client')
-        NullArgumentException.if_none(kasa_client, 'kasa_client')
-        NullArgumentException.if_none(
+        ArgumentNullException.if_none(device_service, 'device_service')
+        ArgumentNullException.if_none(preset_service, 'preset_service')
+        ArgumentNullException.if_none(kasa_client, 'kasa_client')
+        ArgumentNullException.if_none(
             client_response_service, 'client_response_service')
 
         self.__device_service = device_service
         self.__preset_service = preset_service
         self.__client_response_service = client_response_service
-        self.__identity_client = identity_client
-        self.__cache_client = cache_client
         self.__kasa_client = kasa_client
 
     async def __get_client_responses(
@@ -67,7 +58,7 @@ class KasaExecutionService:
         known state of the device
         '''
 
-        NullArgumentException.if_none(scene, 'scene')
+        ArgumentNullException.if_none(scene, 'scene')
 
         # Refresh the token if necessary so when the events are processed
         # there is a working token available
@@ -108,7 +99,24 @@ class KasaExecutionService:
             device = devices_map.get(mapping.device_id)
             preset = presets_map.get(mapping.preset_id)
 
+            # Verify the mappings are valid but do not throw for missing
+            # devices/presets to allow the rest of the scene to run
+            if device is None:
+                logger.info(
+                    f'Device {mapping.device_id} in scene {scene.scene_id} is not known')
+                continue
+
+            if preset is None:
+                logger.info(
+                    f'Preset {mapping.preset_id} in scene {scene.scene_id} is not known')
+                continue
+
+            # TODO: Need to periodically sync device current states to handle outside changed
+            # Get the last known client response for a given device and only
+            # update if the requested preset is different
             response = response_map.get(mapping.device_id)
+
+            # TODO: Verify the preset was actually set/acknowleded (i.e. last response success)
             if (response is None
                     or response.preset_id != preset.preset_id):
 
@@ -120,6 +128,9 @@ class KasaExecutionService:
                         device=device,
                         preset=preset))
             else:
+                # TODO: Rules for certain devices to always send a device state request?
+                # Particularly devices prone to being turned on/off manually - if the device
+                # was in an off state.
                 logger.info(
                     f'{mapping.device_id}: {mapping.preset_id}: Device is already set to requested preset')
 
