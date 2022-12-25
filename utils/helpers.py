@@ -1,3 +1,7 @@
+import json
+from framework.crypto.hashing import sha256
+
+
 def apply(items, func):
     return list(map(func, items))
 
@@ -14,3 +18,12 @@ def get_map(items: list, key: str, is_dict: bool = True):
             getattr(item, key): item
             for item in items
         }
+
+
+def generate_key(items):
+    return sha256(
+        data=json.dumps(
+            items,
+            default=str
+        )
+    )

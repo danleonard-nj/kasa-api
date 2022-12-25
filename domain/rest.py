@@ -328,3 +328,4 @@ class UpdateClientResponseRequest:
         self.device_id = data.get('device_id')
         self.preset_id = data.get('preset_id')
         self.client_response = data.get('client_response')
+        self.state_key = data.get('state_key')
