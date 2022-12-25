@@ -45,6 +45,7 @@ class KasaClientResponse(Serializable):
     ):
         self.client_response = request.client_response
         self.preset_id = request.preset_id
+        self.state_key = request.state_key
 
         self.modified_date = datetime.now()
 

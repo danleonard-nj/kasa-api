@@ -114,7 +114,7 @@ class KasaClient:
         Set the Kasa device state
         '''
 
-        not_none(kasa_request, 'kasa_request')
+        ArgumentNullException.if_none(kasa_request, 'kasa_request')
 
         logger.info(f'Sending device state request to Kasa client')
         response = await self.__send_request(
