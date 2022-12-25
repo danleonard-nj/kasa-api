@@ -107,7 +107,8 @@ class KasaClient:
         self,
         kasa_request: dict,
         preset_id=None,
-        device_id=None
+        device_id=None,
+        state_key=None
     ) -> KasaResponse:
         '''
         Set the Kasa device state
@@ -123,7 +124,8 @@ class KasaClient:
             await self.__event_service.send_client_response_event(
                 device_id=device_id,
                 preset_id=preset_id,
-                client_response=response.data)
+                client_response=response.data,
+                state_key=state_key)
 
         return response
 

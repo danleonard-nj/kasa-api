@@ -62,7 +62,8 @@ class KasaEventService:
         self,
         device_id: str,
         preset_id: str,
-        client_response: dict
+        client_response: dict,
+        state_key: str
     ) -> None:
         '''
         Dispatch a client response event to store
@@ -76,6 +77,7 @@ class KasaEventService:
             kasa_response=client_response,
             device_id=device_id,
             preset_id=preset_id,
+            state_key=state_key,
             base_url=self.__base_url,
             token=token)
 
