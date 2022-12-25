@@ -1,19 +1,21 @@
 from typing import Dict
 
+from framework.exceptions.nulls import ArgumentNullException
+
 from domain.common import Hashable
-from domain.constants import KasaDeviceType, KasaRest
-from domain.exceptions import NullArgumentException
+from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
 
 
 class KasaPlug(KasaDevice, Hashable):
     def __init__(
-            self,
-            device_id: str,
-            device_name: str,
-            state: bool,
-            **kwargs):
+        self,
+        device_id: str,
+        device_name: str,
+        state: bool,
+        **kwargs
+    ):
 
         self.state = state
 
@@ -25,35 +27,38 @@ class KasaPlug(KasaDevice, Hashable):
 
     @staticmethod
     def from_kasa_response(
-        data: KasaResponse
-    ) -> 'KasaPlug':
+        kasa_response: KasaResponse
+    ) -> ['KasaPlug', None]:
 
-        NullArgumentException.if_none(data, 'data')
+        ArgumentNullException.if_none(kasa_response, 'kasa_response')
 
-        if not data.has_result:
+        if not kasa_response.has_result:
             return
 
-        info = data.result.get(
-            KasaRest.RESPONSE_DATA).get(
-                KasaRest.SYSTEM).get(
-                    KasaRest.GET_SYSINFO)
+        # Create the base Kasa device
+        device = KasaDevice.from_kasa_device_json_object(
+            kasa_device=kasa_response.device_object)
 
-        device = KasaDevice.from_kasa_device_params(
-            data=info)
+        # Get the power state (on/off)
+        power_state = kasa_response.device_object.get('relay_state')
 
         return KasaPlug(
             device_id=device.device_id,
             device_name=device.device_name,
-            state=info.get(KasaRest.RELAY_STATE) == 1)
+            state=power_state == 1)
 
     def to_kasa_request(
         self
     ) -> Dict:
+        '''
+        Generate the Kasa request to set the
+        device state
+        '''
 
         return super().to_kasa_request({
-            KasaRest.SYSTEM: {
-                KasaRest.SET_RELAY_STATE: {
-                    KasaRest.STATE: 1 if self.state else 0
+            'system': {
+                'set_relay_state': {
+                    'state': 1 if self.state else 0
                 }
             }
         })

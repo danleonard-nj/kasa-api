@@ -4,6 +4,7 @@ from deprecated import deprecated
 from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
 from framework.logger.providers import get_logger
+from framework.exceptions.nulls import ArgumentNullException
 from framework.validators.nulls import none_or_whitespace
 
 from clients.kasa_client import KasaClient
@@ -170,16 +171,14 @@ class KasaDeviceService:
 
         return created_devices
 
-    async def __create_kasa_device(
+    async def get_device_state(
         self,
-        client_device: Dict
-    ) -> None:
+        device_id: str
+    ):
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
-        kasa_device = KasaDevice.from_kasa_device_params(
-            data=client_device)
-
-        await self.__device_repository.insert(
-            document=kasa_device.to_dict())
+        return await self.__kasa_client.get_device_state(
+            device_id=device_id)
 
     async def set_device_state(
         self,
@@ -190,8 +189,8 @@ class KasaDeviceService:
         Set a device state to a given preset
         '''
 
-        NullArgumentException.if_none(device, 'device')
-        NullArgumentException.if_none(preset, 'preset')
+        ArgumentNullException.if_none(device, 'device')
+        ArgumentNullException.if_none(preset, 'preset')
 
         logger.info(
             f'Set device state: {device.device_id}: Preset: {preset.preset_id}')
@@ -404,3 +403,26 @@ class KasaDeviceService:
 
         await self.__cache_client.client.delete(*keys)
         return keys
+
+    async def get_auto_sync_enabled_devices(
+        self
+    ):
+        logger.info(f'Get devices with automated sync enabled')
+
+        entities = await self.__device_repository.get_automated_sync_devices()
+
+        models = [KasaDevice(data=entity)
+                  for entity in entities]
+
+        return models
+
+    async def __create_kasa_device(
+        self,
+        client_device: Dict
+    ) -> None:
+
+        kasa_device = KasaDevice.from_kasa_device_json_object(
+            kasa_device=client_device)
+
+        await self.__device_repository.insert(
+            document=kasa_device.to_dict())

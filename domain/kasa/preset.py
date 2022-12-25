@@ -12,6 +12,7 @@ from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
 from domain.kasa.devices.plug import KasaPlug
 from domain.rest import KasaRequest
+from framework.exceptions.nulls import ArgumentNullException
 
 
 class KasaPreset(Serializable, Cacheable, Selectable):
@@ -21,21 +22,17 @@ class KasaPreset(Serializable, Cacheable, Selectable):
         self.device_type = data.get('device_type')
         self.definition = data.get('definition')
 
-        NullArgumentException.if_none_or_whitespace(
+        ArgumentNullException.if_none_or_whitespace(
             self.preset_name, 'preset_name')
-        NullArgumentException.if_none_or_whitespace(
+        ArgumentNullException.if_none_or_whitespace(
             self.device_type, 'device_type')
-        NullArgumentException.if_none(
+        ArgumentNullException.if_none(
             self.definition, 'definition')
 
     def get_selector(self):
         return {
             'preset_id': self.preset_id
         }
-
-    def with_id(self, id=None):
-        self.preset_id = id or str(uuid.uuid4())
-        return self
 
     @staticmethod
     def create_preset(data):
@@ -45,30 +42,43 @@ class KasaPreset(Serializable, Cacheable, Selectable):
             }
         )
 
-    @property
-    def power_state(self) -> int:
-        return self.definition.get('state')
+    # @property
+    # def power_state(self) -> int:
+    #     return self.definition.get('state')
 
-    @power_state.setter
-    def power_state(
+    # @power_state.setter
+    # def power_state(
+    #     self,
+    #     state
+    # ):
+    #     self.definition['state'] = state
+
+    def to_device_preset(
         self,
-        state
-    ):
-        self.definition['state'] = state
+        device: KasaDevice
+    ) -> Union[KasaPlug, KasaLight]:
+        '''
+        Parse the device type (light, plug, etc) with
+        preset parameters
+        '''
 
-    def to_device_model(self, device: KasaDevice) -> Union[KasaPlug, KasaLight]:
-        not_none(device, 'device')
+        ArgumentNullException.if_none(device, 'device')
 
-        _params = {
+        # Base params (consistent across all device
+        # types)
+        default_params = {
             'device_id': device.device_id,
             'device_type': device.device_type,
             'device_name': device.device_name,
         }
-        params = _params | self.definition
 
+        params = default_params | self.definition
+
+        # Build Kasa plug model
         if self.device_type == KasaDeviceType.KasaPlug:
             return KasaPlug(**params)
 
+        # Build Kasa light model
         if self.device_type == KasaDeviceType.KasaLight:
             return KasaLight(**params)
 
@@ -76,9 +86,9 @@ class KasaPreset(Serializable, Cacheable, Selectable):
         self,
         device: KasaDevice
     ) -> KasaRequest:
-        not_none(device, 'device')
+        ArgumentNullException.if_none(device, 'device')
 
-        request_body = self.to_device_model(
+        request_body = self.to_device_preset(
             device).to_kasa_request()
 
         return KasaRequest({

@@ -13,6 +13,8 @@ from framework.logger.providers import get_logger
 from framework.serialization.utilities import serialize
 from framework.validators.nulls import not_none
 from services.kasa_event_service import KasaEventService
+from framework.exceptions.nulls import ArgumentNullException
+import httpx
 
 logger = get_logger(__name__)
 
@@ -49,12 +51,7 @@ class KasaClient:
         Send a request to the Kasa client
         '''
 
-        not_none(json, 'json')
-
-        # TODO: Remove semaphore
-        if self.__semaphore is None:
-            logger.info(f'Initializing client semaphore')
-            self.__semaphore = asyncio.Semaphore(self.__max_concurrency)
+        ArgumentNullException.if_none(json, 'json')
 
         # Use cached token if it's available
         kasa_token = self.__memory_cache.get(
@@ -71,15 +68,11 @@ class KasaClient:
         else:
             logger.info(f'Kasa token fetched from memory cache')
 
-        await self.__semaphore.acquire()
-        logger.info(f'Acquiring semaphore value')
-
-        response = await self.__http_client.post(
-            url=f'{self.__base_url}/?token={kasa_token}',
-            json=json,
-            timeout=None)
-
-        self.__semaphore.release()
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(
+                url=f'{self.__base_url}/?token={kasa_token}',
+                json=json,
+                timeout=None)
 
         logger.info(f'Status: {response.status_code}')
 
@@ -99,13 +92,13 @@ class KasaClient:
         Get the current device state
         '''
 
-        not_none(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         request = GetKasaDeviceStateRequest(
             device_id=device_id)
 
         data = request.to_dict()
-        logger.info(f'Device state request: {serialize(data)}')
+        logger.info(f'Device state request: {data}')
 
         return await self.__send_request(
             json=data)

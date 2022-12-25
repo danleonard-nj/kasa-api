@@ -57,6 +57,11 @@ class InvalidDeviceRequestException(Exception):
         super().__init__(f"Device request is not valid: {message}")
 
 
+class InvalidDeviceTypeException(Exception):
+    def __init__(self, device_type, *args: object, **kwargs) -> None:
+        super().__init__(f"'{device_type}' is not a known device type")
+
+
 class PresetNotFoundException(NotFoundException):
     def __init__(self, preset_id, *args: object) -> None:
         super().__init__(

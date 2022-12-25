@@ -5,12 +5,14 @@ from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
 
 from clients.kasa_client import KasaClient
+from domain.features import FeatureKey
 from domain.kasa.client_response import KasaClientResponse
 from domain.kasa.scene import KasaScene
 from domain.rest import MappedSceneRequest
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_preset_service import KasaPresetSevice
+from framework.clients.feature_client import FeatureClientAsync
 from utils.helpers import get_map
 
 logger = get_logger(__name__)
@@ -21,18 +23,23 @@ class KasaExecutionService:
         self,
         device_service: KasaDeviceService,
         preset_service: KasaPresetSevice,
+        feature_client: FeatureClientAsync,
         client_response_service: KasaClientResponseService,
         kasa_client: KasaClient
     ):
         ArgumentNullException.if_none(device_service, 'device_service')
         ArgumentNullException.if_none(preset_service, 'preset_service')
         ArgumentNullException.if_none(kasa_client, 'kasa_client')
+
+        ArgumentNullException.if_none(
+            feature_client, 'feature_client')
         ArgumentNullException.if_none(
             client_response_service, 'client_response_service')
 
         self.__device_service = device_service
         self.__preset_service = preset_service
         self.__client_response_service = client_response_service
+        self.__feature_client = feature_client
         self.__kasa_client = kasa_client
 
     async def __get_client_responses(
@@ -59,6 +66,9 @@ class KasaExecutionService:
         '''
 
         ArgumentNullException.if_none(scene, 'scene')
+
+        ignore_client_responses = await self.__feature_client.is_enabled(
+            feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
 
         # Refresh the token if necessary so when the events are processed
         # there is a working token available
@@ -117,7 +127,8 @@ class KasaExecutionService:
             response = response_map.get(mapping.device_id)
 
             # TODO: Verify the preset was actually set/acknowleded (i.e. last response success)
-            if (response is None
+            if (ignore_client_responses
+                    or response is None
                     or response.preset_id != preset.preset_id):
 
                 logger.info(
