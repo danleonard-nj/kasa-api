@@ -4,7 +4,9 @@ from framework.configuration.configuration import Configuration
 from framework.constants.constants import ConfigurationKey
 from framework.logger.providers import get_logger
 from framework.serialization.utilities import serialize
-from framework.validators.nulls import none_or_whitespace, not_none
+from framework.exceptions.nulls import ArgumentNullException
+from framework.validators.nulls import none_or_whitespace
+import httpx
 
 from domain.cache import CacheKey
 
@@ -17,16 +19,13 @@ class IdentityClient:
         configuration: Configuration,
         cache_client: CacheClientAsync
     ):
-        not_none(configuration, 'configuration')
+        ArgumentNullException.if_none(configuration, 'configuration')
+        ArgumentNullException.if_none(cache_client, 'cache_client')
 
         self.__ad_auth = configuration.ad_auth
         self.__cache_client = cache_client
-        self.__http_client = HttpClient()
 
-        logger.info('Configuring identity client')
         self.__clients = dict()
-
-        logger.info('Loading identity clients from configuration')
         for client in self.__ad_auth.clients:
             self.__add_client(client)
 
@@ -64,7 +63,8 @@ class IdentityClient:
 
     async def get_token(
         self,
-        client_name: str
+        client_name: str,
+        scope: str = None
     ):
         cached_token = await self.__cache_client.get_cache(
             key=CacheKey.auth_token(client_name))
@@ -80,16 +80,17 @@ class IdentityClient:
 
         logger.info(f'Client: {serialize(client)}')
 
-        response = await self.__http_client.post(
-            url=f'{self.__ad_auth.identity_url}',
-            data=client,
-            headers={
-                'ContentType': 'application/json'
-            })
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(
+                url=f'{self.__ad_auth.identity_url}',
+                data=client,
+                headers={
+                    'ContentType': 'application/json'
+                })
 
         logger.info(f'Response: {response.status_code}')
 
-        if response.status_code != 200:
+        if response.is_error:
             raise Exception(
                 f'Failed to fetch auth token: {response.status_code}: {response.text}')
 

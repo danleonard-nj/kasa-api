@@ -12,6 +12,7 @@ class KasaDevice(Serializable, Selectable):
         self.device_id = data.get('device_id')
         self.device_name = data.get('device_name')
         self.device_type = data.get('device_type')
+        self.device_sync = data.get('device_sync')
         self.region_id = data.get('region_id')
 
         not_none(self.device_id, 'device_id')

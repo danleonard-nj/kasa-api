@@ -1,5 +1,6 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
+
 from framework.serialization import Serializable
 
 from domain.rest import UpdateClientResponseRequest
@@ -11,6 +12,8 @@ class KasaClientResponse(Serializable):
         self.device_id = data.get('device_id')
         self.preset_id = data.get('preset_id')
         self.client_response = data.get('client_response')
+        self.sync_status = data.get('sync_status')
+        self.sync_reason = data.get('sync_reason')
         self.created_date = data.get('created_date')
         self.modified_date = data.get('modified_date')
 
