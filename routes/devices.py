@@ -23,7 +23,7 @@ async def update_device(container):
 
     body = await request.get_json()
 
-    return kasa_device_provider.update_device(
+    return await kasa_device_provider.update_device(
         body=body)
 
 
@@ -32,7 +32,7 @@ async def get_device(container, device_id):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
 
-    return kasa_device_provider.get_device(
+    return await kasa_device_provider.get_device(
         device_id=device_id)
 
 
@@ -59,7 +59,7 @@ async def set_device_region(container, device_id: str, region_id: str):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
 
-    return kasa_device_provider.set_device_region(
+    return await kasa_device_provider.set_device_region(
         device_id=device_id,
         region_id=region_id)
 
