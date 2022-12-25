@@ -73,17 +73,17 @@ class IdentityClient:
             logger.info(f'Auth client: {client_name}: Returning cached token')
             return cached_token
 
-        client = self.__clients.get(client_name)
+        client_credentials = self.__clients.get(client_name)
 
-        if client is None:
+        if client_credentials is None:
             raise Exception(f'No client exists with the name {client_name}')
 
-        logger.info(f'Client: {serialize(client)}')
+        logger.info(f'Client: {serialize(client_credentials)}')
 
         async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post(
                 url=f'{self.__ad_auth.identity_url}',
-                data=client,
+                data=client_credentials,
                 headers={
                     'ContentType': 'application/json'
                 })
