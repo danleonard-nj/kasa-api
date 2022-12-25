@@ -72,3 +72,17 @@ class KasaDeviceRepository(MongoRepositoryAsync):
 
         return await results.to_list(
             length=None)
+
+    async def get_automated_sync_devices(
+        self
+    ):
+        '''
+        Get devices flagged for automatic sync
+        '''
+
+        results = self.collection.find({
+            'device_sync': True
+        })
+
+        return await results.to_list(
+            length=None)

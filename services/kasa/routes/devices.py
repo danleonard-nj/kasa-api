@@ -36,6 +36,15 @@ async def get_device(container, device_id):
         device_id=device_id)
 
 
+@devices_bp.configure('/api/device/state/<device_id>', methods=['GET'], auth_scheme='read')
+async def get_device_state(container, device_id):
+    kasa_device_provider: KasaDeviceProvider = container.resolve(
+        KasaDeviceProvider)
+
+    return await kasa_device_provider.get_device_state(
+        device_id=device_id)
+
+
 @devices_bp.configure('/api/device/sync', methods=['POST'], auth_scheme='write')
 async def sync_devices(container):
     kasa_device_provider: KasaDeviceProvider = container.resolve(

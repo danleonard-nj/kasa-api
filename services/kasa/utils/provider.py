@@ -5,6 +5,7 @@ from framework.configuration.configuration import Configuration
 from framework.di.service_collection import ServiceCollection
 from framework.di.static_provider import ProviderBase
 from motor.motor_asyncio import AsyncIOMotorClient
+from framework.clients.feature_client import FeatureClientAsync
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
@@ -18,6 +19,7 @@ from data.repositories.kasa_scene_category_repository import \
     KasaSceneCategoryRepository
 from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.kasa.auth import configure_azure_ad
+from providers.kasa_client_response_provider import KasaClientResponseProvider
 from providers.kasa_device_provider import KasaDeviceProvider
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_device_service import KasaDeviceService
@@ -40,6 +42,7 @@ def configure_mongo_client(container):
 
 def register_clients(descriptors: ServiceCollection):
     descriptors.add_singleton(CacheClientAsync)
+    descriptors.add_singleton(FeatureClientAsync)
     descriptors.add_singleton(IdentityClient)
     descriptors.add_singleton(EventClient)
     descriptors.add_singleton(KasaClient)
@@ -67,6 +70,7 @@ def register_services(descriptors: ServiceCollection):
 
 def register_providers(descriptors: ServiceCollection):
     descriptors.add_singleton(KasaDeviceProvider)
+    descriptors.add_singleton(KasaClientResponseProvider)
 
 
 class ContainerProvider(ProviderBase):

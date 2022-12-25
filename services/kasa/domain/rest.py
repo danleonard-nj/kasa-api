@@ -19,18 +19,23 @@ class ApiRequest:
                 raise RequiredFieldException(field)
 
 
-class KasaRequestBase:
-    def __init__(self, device_id, request_data, method='passthrough'):
+class KasaRequestBase(Serializable):
+    def __init__(
+        self,
+        device_id: str,
+        request_data: Dict,
+        method: str = 'passthrough'
+    ):
         self.method = method
         self.device_id = device_id
         self.request_data = request_data
 
     def to_dict(self):
         return {
-            KasaRest.METHOD: KasaRequestMethod.PASSTHROUGH,
-            KasaRest.PARAMS: {
-                KasaRest.DEVICE_ID: self.device_id,
-                KasaRest.REQUEST_DATA: self.request_data
+            'method': self.method,
+            'params': {
+                'deviceId': self.device_id,
+                'requestData': self.request_data
             }
         }
 
@@ -40,13 +45,33 @@ class KasaResponse(Serializable):
     def has_result(
         self
     ) -> bool:
-        return self.result is not None
+        return 'result' in self.data
 
     @property
     def is_error(
         self
     ) -> bool:
         return self.error_code < 0
+
+    @property
+    def device_object(
+        self
+    ):
+        return self.result.get(
+            'responseData').get(
+                'system').get(
+                    'get_sysinfo')
+
+    @property
+    def result(
+        self
+    ):
+        '''
+        Kasa response parameter data object
+        '''
+
+        if self.has_result:
+            return self.data.get('result')
 
     def __init__(
         self,
@@ -55,18 +80,11 @@ class KasaResponse(Serializable):
         self.data = data
 
         self.error_code = data.get(
-            KasaRest.ERROR_CODE) or 0
+            'error_code') or 0
         self.error_message = data.get(
-            KasaRest.MESSAGE)
+            'msg')
 
-        self.result = (data.get(KasaRest.RESULT)
-                       if KasaRest.RESULT in data
-                       else None)
-
-    def _exclude(
-        self
-    ) -> List[str]:
-        # Exclude properties from serialization
+    def serializer_exclude(self):
         return ['data']
 
 

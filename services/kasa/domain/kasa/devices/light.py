@@ -1,10 +1,11 @@
-from typing import Union
+from typing import Dict, Union
+
+from framework.exceptions.nulls import ArgumentNullException
 
 from domain.common import Hashable
-from domain.constants import KasaDeviceType, KasaRest
+from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
-from framework.validators.nulls import not_none
 
 
 class KasaLight(KasaDevice, Hashable):
@@ -28,65 +29,80 @@ class KasaLight(KasaDevice, Hashable):
         self.saturation = saturation
         self.temperature = temperature
 
-        not_none(self.state, 'state')
-        not_none(self.brightness, 'brightness')
-        not_none(self.hue, 'hue')
-        not_none(self.saturation, 'saturation')
-
         super().__init__({
             'device_id': device_id,
             'device_name': device_name,
             'device_type': KasaDeviceType.KasaLight
         })
 
-    def to_json(self):
-        device = {
-            'state': self.state,
-            'hue': self.hue,
-            'saturation': self.saturation,
-            'temperature': self.temperature
-        }
+        ArgumentNullException.if_none_or_whitespace(
+            self.device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(
+            self.device_name, 'device_name')
+        ArgumentNullException.if_none_or_whitespace(
+            self.device_type, 'device_type')
 
-        return super().to_dict() | device
+        ArgumentNullException.if_none_or_whitespace(self.state, 'state')
+
+        ArgumentNullException.if_none(self.brightness, 'brightness')
+        ArgumentNullException.if_none(self.hue, 'hue')
+        ArgumentNullException.if_none(self.saturation, 'saturation')
 
     @staticmethod
-    def from_kasa_response(data: KasaResponse):
-        not_none(data, 'data')
+    def from_kasa_response(
+        kasa_response: KasaResponse
+    ) -> Union['KasaLight', None]:
+        '''
+        Construct a `KasaLight` instance from the device
+        info response from the Kasa client
+        '''
 
-        if data.has_result:
-            info = data.result.get(
-                KasaRest.RESPONSE_DATA).get(
-                    KasaRest.SYSTEM).get(
-                        KasaRest.GET_SYSINFO)
+        ArgumentNullException.if_none(kasa_response, 'kasa_response')
 
-            device = KasaDevice.from_kasa_device_params(
-                data=info)
+        # TODO: Throw here, handle scenario upstream
+        if not kasa_response.has_result:
+            return
 
-            light_state = info.get(KasaRest.LIGHT_STATE)
+        # Base device object
+        device = KasaDevice.from_kasa_device_json_object(
+            kasa_device=kasa_response.device_object)
 
-            if KasaRest.DEFAULT_LIGHT_STATE in light_state:
-                light_state = light_state.get(KasaRest.DEFAULT_LIGHT_STATE)
+        # Light on/off
+        light_power_state = kasa_response.device_object.get(
+            'light_state').get('on_off')
 
-            return KasaLight(
-                device_id=device.device_id,
-                device_name=device.device_name,
-                state=light_state.get(KasaRest.ON_OFF) == 1,
-                brightness=light_state.get(KasaRest.BRIGHTNESS),
-                hue=light_state.get(KasaRest.HUE),
-                saturation=light_state.get(KasaRest.SATURATION),
-                temperature=light_state.get(KasaRest.COLOR_TEMP))
+        # Get the light device parameters
+        light_params = kasa_response.device_object.get(
+            'light_state')
 
-    def to_kasa_request(self):
+        # Get the nested default light params if they're present
+        if 'dft_on_state' in light_params:
+            light_params = light_params.get('dft_on_state')
+
+        return KasaLight(
+            device_id=device.device_id,
+            device_name=device.device_name,
+            state=light_power_state == 1,
+            brightness=light_params.get('brightness'),
+            hue=light_params.get('hue'),
+            saturation=light_params.get('saturation'),
+            temperature=light_params.get('color_temp'))
+
+    def to_kasa_request(
+        self
+    ) -> Dict:
+        transition_light_state = dict(
+            mode='normal',
+            saturation=self.saturation,
+            brightness=self.brightness,
+            hue=self.hue,
+            on_off=1 if self.state else 0,
+            color_temp=self.temperature,
+            ignore_default=1
+        )
+
         return super().to_kasa_request({
-            KasaRest.LIGHTING_SERVICE: {
-                KasaRest.TRANSITION_LIGHT_STATE: {
-                    KasaRest.MODE: KasaRest.NORMAL,
-                    KasaRest.SATURATION: self.saturation,
-                    KasaRest.BRIGHTNESS: self.brightness,
-                    KasaRest.HUE: self.hue,
-                    KasaRest.ON_OFF: 1 if self.state else 0,
-                    KasaRest.COLOR_TEMP: self.temperature,
-                    KasaRest.IGNORE_DEFAULT: 1
-                }
+            'smartlife.iot.smartbulb.lightingservice': {
+                'transition_light_state': transition_light_state
             }
         })

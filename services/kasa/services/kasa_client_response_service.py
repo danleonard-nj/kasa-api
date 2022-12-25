@@ -7,6 +7,7 @@ from data.repositories.kasa_client_response_repository import \
 from domain.exceptions import NullArgumentException
 from domain.kasa.client_response import KasaClientResponse
 from domain.rest import UpdateClientResponseRequest
+from domain.sync import SyncStatusReason
 
 logger = get_logger(__name__)
 
@@ -17,6 +18,21 @@ class KasaClientResponseService:
         client_response_repository: KasaClientResponseRepository
     ):
         self.__client_response_repository = client_response_repository
+
+    def __handle_sync_status_update(
+        self,
+        model: KasaClientResponse
+    ) -> KasaClientResponse:
+
+        # Update the sync status to out of sync if the client
+        # returns an error status (usually device is not live
+        # or reachable i.e. device was turned off manually)
+        if model.is_error:
+            model.update_sync_status(
+                sync_status=False,
+                sync_reason=SyncStatusReason.ClientResponseError)
+
+        return model
 
     async def update_client_response(
         self,
@@ -51,6 +67,10 @@ class KasaClientResponseService:
         model.update_client_response(
             request=request)
 
+        # Set the device sync status
+        model = self.__handle_sync_status_update(
+            model=model)
+
         # Update the record
         result = await self.__client_response_repository.update(
             model.get_selector(),
@@ -75,6 +95,9 @@ class KasaClientResponseService:
             device_id=device_id,
             preset_id=preset_id,
             client_response=client_response)
+
+        model = self.__handle_sync_status_update(
+            model=model)
 
         await self.__client_response_repository.insert(
             model.to_dict())

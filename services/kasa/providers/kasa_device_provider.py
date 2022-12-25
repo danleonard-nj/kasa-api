@@ -5,6 +5,7 @@ from framework.logger import get_logger
 from domain.exceptions import RequiredRouteSegmentException
 from domain.rest import SetDevicePresetResponse, UpdateDeviceRequest
 from services.kasa_device_service import KasaDeviceService
+from framework.exceptions.nulls import ArgumentNullException
 
 logger = get_logger(__name__)
 
@@ -33,6 +34,8 @@ class KasaDeviceProvider:
         Handle device update request
         '''
 
+        ArgumentNullException.if_none(body, 'body')
+
         update_request = UpdateDeviceRequest(
             data=body)
 
@@ -43,10 +46,7 @@ class KasaDeviceProvider:
         self,
         device_id: str
     ):
-        # Verify device ID
-        RequiredRouteSegmentException.if_none_or_whitespace(
-            device_id,
-            'device_id')
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         return await self.__device_service.get_device(
             device_id=device_id)
@@ -56,15 +56,8 @@ class KasaDeviceProvider:
         device_id: str,
         region_id: str
     ):
-        # Verify device ID
-        RequiredRouteSegmentException.if_none_or_whitespace(
-            device_id,
-            'device_id')
-
-        # Verify region ID
-        RequiredRouteSegmentException.if_none_or_whitespace(
-            region_id,
-            'region_id')
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
 
         return await self.__device_service.set_device_region(
             device_id=device_id,
@@ -83,8 +76,21 @@ class KasaDeviceProvider:
         self,
         device_id: str
     ):
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
+
         return await self.__device_service.get_device_client_response(
             device_id=device_id)
+
+    async def get_device_state(
+        self,
+        device_id
+    ):
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
+
+        device = await self.__device_service.get_device_state(
+            device_id=device_id)
+
+        return device.device_object
 
     async def set_device_preset(
         self,
@@ -95,17 +101,10 @@ class KasaDeviceProvider:
         Handle set device preset request
         '''
 
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(preset_id, 'preset_id')
+
         logger.info(f'Device: {device_id}: Preset: {preset_id}')
-
-        # Verify device ID
-        RequiredRouteSegmentException.if_none_or_whitespace(
-            device_id,
-            'device_id')
-
-        # Verify preset ID
-        RequiredRouteSegmentException.if_none_or_whitespace(
-            preset_id,
-            'preset_id')
 
         kasa_request, kasa_response = await self.__device_service.set_device_state(
             device_id=device_id,

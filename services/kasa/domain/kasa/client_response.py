@@ -7,6 +7,12 @@ from domain.rest import UpdateClientResponseRequest
 
 
 class KasaClientResponse(Serializable):
+    @property
+    def is_error(
+        self
+    ) -> bool:
+        return self.__get_error_status()
+
     def __init__(self, data):
         self.client_response_id = data.get('client_response_id')
         self.device_id = data.get('device_id')
@@ -16,6 +22,15 @@ class KasaClientResponse(Serializable):
         self.sync_reason = data.get('sync_reason')
         self.created_date = data.get('created_date')
         self.modified_date = data.get('modified_date')
+
+    def __get_error_status(
+        self
+    ) -> bool:
+        if self.client_response is None:
+            return False
+
+        return self.client_response.get(
+            'error_code', 0) < 0
 
     def get_selector(self):
         return {
@@ -28,6 +43,17 @@ class KasaClientResponse(Serializable):
     ):
         self.client_response = request.client_response
         self.preset_id = request.preset_id
+
+        self.modified_date = datetime.now()
+
+    def update_sync_status(
+        self,
+        sync_status: str,
+        sync_reason: str
+    ):
+        self.sync_status = sync_status
+        self.sync_reason = sync_reason
+
         self.modified_date = datetime.now()
 
     @staticmethod
