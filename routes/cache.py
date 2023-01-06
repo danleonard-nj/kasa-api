@@ -1,8 +1,8 @@
 from framework.logger.providers import get_logger
+from framework.rest.blueprints.meta import MetaBlueprint
 from quart import request
 
 from services.kasa_device_service import KasaDeviceService
-from utils.meta import MetaBlueprint
 
 logger = get_logger(__name__)
 cache_bp = MetaBlueprint('cache_bp', __name__)
