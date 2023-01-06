@@ -27,7 +27,6 @@ class KasaClient:
         configuration: Configuration
     ):
         self.__cache_client = cache_client
-        self.__http_client = HttpClient()
         self.__memory_cache = MemoryCache()
         self.__event_service = event_service
 
@@ -190,9 +189,10 @@ class KasaClient:
             username=self.__username,
             password=self.__password).to_dict()
 
-        response = await self.__http_client.post(
-            url=f'{self.__base_url}/',
-            json=request)
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(
+                url=f'{self.__base_url}/',
+                json=request)
 
         content = response.json()
         logger.info(f'Kasa token response: {content}')

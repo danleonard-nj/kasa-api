@@ -1,5 +1,3 @@
-from queue import Queue
-
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration import Configuration
 from framework.logger import get_logger
