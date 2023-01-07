@@ -13,7 +13,6 @@ fullnameOverride: "kasa"
 
 environment:
   envFrom:
-    - secretName: azure
     - secretName: kasa-env
 
 probes:
