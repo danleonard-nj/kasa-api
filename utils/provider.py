@@ -9,7 +9,7 @@ from framework.clients.feature_client import FeatureClientAsync
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
-from clients.service_bus import EventClient
+from clients.event_client import EventClient
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from data.repositories.kasa_device_repository import KasaDeviceRepository
