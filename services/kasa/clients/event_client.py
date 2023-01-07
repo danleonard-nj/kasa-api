@@ -18,7 +18,6 @@ class EventClient:
             'queue_name')
         self.__client = ServiceBusClient.from_connection_string(
             conn_str=connecion_string,
-            logging_enable=True,
             transport_type=TransportType.Amqp)
 
         self.__sender = self.__client.get_queue_sender(

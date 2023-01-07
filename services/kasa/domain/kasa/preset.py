@@ -1,6 +1,8 @@
 import uuid
-from typing import Union
+from datetime import datetime
+from typing import Dict, Union
 
+from framework.exceptions.nulls import ArgumentNullException
 from framework.serialization import Serializable
 from framework.validators.nulls import not_none
 
@@ -12,7 +14,6 @@ from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
 from domain.kasa.devices.plug import KasaPlug
 from domain.rest import KasaRequest
-from framework.exceptions.nulls import ArgumentNullException
 
 
 class KasaPreset(Serializable, Cacheable, Selectable):
@@ -21,6 +22,8 @@ class KasaPreset(Serializable, Cacheable, Selectable):
         self.preset_name = data.get('preset_name')
         self.device_type = data.get('device_type')
         self.definition = data.get('definition')
+        self.created_date = data.get('created_date')
+        self.modified_date = data.get('modified_date')
 
         ArgumentNullException.if_none_or_whitespace(
             self.preset_name, 'preset_name')
@@ -28,6 +31,24 @@ class KasaPreset(Serializable, Cacheable, Selectable):
             self.device_type, 'device_type')
         ArgumentNullException.if_none(
             self.definition, 'definition')
+
+    def update_preset(
+        self,
+        preset_name: str,
+        device_type: str,
+        definition: Dict
+    ):
+        ArgumentNullException.if_none_or_whitespace(
+            preset_name, 'preset_name')
+        ArgumentNullException.if_none_or_whitespace(
+            device_type, 'device_type')
+        ArgumentNullException.if_none(
+            definition, 'definition')
+
+        self.preset_name = preset_name
+        self.device_type = device_type
+        self.definition = definition
+        self.modified_date = datetime.now()
 
     def get_selector(self):
         return {
@@ -38,20 +59,9 @@ class KasaPreset(Serializable, Cacheable, Selectable):
     def create_preset(data):
         return KasaPreset(
             data=data | {
-                'preset_id': (uuid.uuid4())
+                'preset_id': str(uuid.uuid4())
             }
         )
-
-    # @property
-    # def power_state(self) -> int:
-    #     return self.definition.get('state')
-
-    # @power_state.setter
-    # def power_state(
-    #     self,
-    #     state
-    # ):
-    #     self.definition['state'] = state
 
     def to_device_preset(
         self,

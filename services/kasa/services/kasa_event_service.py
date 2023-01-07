@@ -4,7 +4,7 @@ from framework.logger import get_logger
 from framework.validators.nulls import none_or_whitespace
 
 from clients.identity_client import IdentityClient
-from clients.service_bus import EventClient
+from clients.event_client import EventClient
 from domain.cache import CacheKey
 from domain.events import StoreKasaClientResponseEvent
 

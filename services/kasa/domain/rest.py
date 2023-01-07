@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Dict
 
 from framework.serialization import Serializable
 from framework.validators.nulls import none_or_whitespace
@@ -223,6 +223,9 @@ class UpdatePresetRequest(Serializable):
     ):
         self.body = body
         self.preset_id = body.get('preset_id')
+        self.preset_name = body.get('preset_name')
+        self.device_type = body.get('device_type')
+        self.definition = body.get('definition')
 
 
 class DeleteResponse(Serializable):
