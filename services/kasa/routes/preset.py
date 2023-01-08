@@ -69,7 +69,7 @@ async def update_preset(container):
 
     body = await request.get_json()
     result = await kasa_preset_service.update_preset(
-        update_request=UpdatePresetRequest(
+        request=UpdatePresetRequest(
             body=body))
 
     return result.to_dict()

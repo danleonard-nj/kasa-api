@@ -14,7 +14,7 @@ from framework.serialization.utilities import serialize
 from framework.validators.nulls import not_none
 from services.kasa_event_service import KasaEventService
 from framework.exceptions.nulls import ArgumentNullException
-from httpx import AsyncClient
+import httpx
 
 logger = get_logger(__name__)
 
@@ -22,26 +22,24 @@ logger = get_logger(__name__)
 class KasaClient:
     def __init__(
         self,
-        configuration: Configuration,
-        http_client: AsyncClient,
         cache_client: CacheClientAsync,
-        event_service: KasaEventService
+        event_service: KasaEventService,
+        configuration: Configuration
     ):
         self.__cache_client = cache_client
-        self.__event_service = event_service
-        self.__http_client = http_client
+        self.__http_client = HttpClient()
         self.__memory_cache = MemoryCache()
+        self.__event_service = event_service
 
         self.__username = configuration.kasa.get('username')
         self.__password = configuration.kasa.get('password')
         self.__base_url = configuration.kasa.get('base_url')
+        self.__max_concurrency = configuration.kasa.get(
+            'max_concurrency') or SemaphoreDefault.KASA_CLIENT
 
-        ArgumentNullException.if_none_or_whitespace(
-            self.__username, 'username')
-        ArgumentNullException.if_none_or_whitespace(
-            self.__password, 'password')
-        ArgumentNullException.if_none_or_whitespace(
-            self.__base_url, 'base_url')
+        not_none(self.__username, 'username')
+        not_none(self.__password, 'password')
+        not_none(self.__base_url, 'base_url')
 
         self.__semaphore = None
 
@@ -55,12 +53,26 @@ class KasaClient:
 
         ArgumentNullException.if_none(json, 'json')
 
-        kasa_token = await self.__get_kasa_token()
+        # Use cached token if it's available
+        kasa_token = self.__memory_cache.get(
+            key=CacheKey.kasa_token())
 
-        response = await self.__http_client.post(
-            url=f'{self.__base_url}/?token={kasa_token}',
-            json=json,
-            timeout=None)
+        if kasa_token is None:
+            kasa_token = await self.__get_kasa_token()
+            logger.info(f'Kasa fetched from Redis cache: {kasa_token}')
+
+            self.__memory_cache.set(
+                key='kasa_token',
+                value=kasa_token,
+                ttl=60)
+        else:
+            logger.info(f'Kasa token fetched from memory cache')
+
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(
+                url=f'{self.__base_url}/?token={kasa_token}',
+                json=json,
+                timeout=None)
 
         logger.info(f'Status: {response.status_code}')
 
@@ -95,14 +107,13 @@ class KasaClient:
         self,
         kasa_request: dict,
         preset_id=None,
-        device_id=None,
-        state_key=None
+        device_id=None
     ) -> KasaResponse:
         '''
         Set the Kasa device state
         '''
 
-        ArgumentNullException.if_none(kasa_request, 'kasa_request')
+        not_none(kasa_request, 'kasa_request')
 
         logger.info(f'Sending device state request to Kasa client')
         response = await self.__send_request(
@@ -112,8 +123,7 @@ class KasaClient:
             await self.__event_service.send_client_response_event(
                 device_id=device_id,
                 preset_id=preset_id,
-                client_response=response.data,
-                state_key=state_key)
+                client_response=response.data)
 
         return response
 

@@ -13,6 +13,7 @@ fullnameOverride: "kasa"
 
 environment:
   envFrom:
+    - secretName: azure
     - secretName: kasa-env
 
 probes:
@@ -44,8 +45,8 @@ resources:
     memory: 300Mi
     
 autoscaling:
-  enabled: true
-  minReplicas: 2
+  enabled: false
+  minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 85
   targetMemoryUtilizationPercentage: 90

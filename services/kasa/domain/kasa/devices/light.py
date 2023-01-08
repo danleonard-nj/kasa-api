@@ -1,13 +1,11 @@
 from typing import Dict, Union
 
 from framework.exceptions.nulls import ArgumentNullException
-from framework.crypto.hashing import sha256
 
 from domain.common import Hashable
 from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
-from utils.helpers import generate_key
 
 
 class KasaLight(KasaDevice, Hashable):
@@ -49,18 +47,6 @@ class KasaLight(KasaDevice, Hashable):
         ArgumentNullException.if_none(self.brightness, 'brightness')
         ArgumentNullException.if_none(self.hue, 'hue')
         ArgumentNullException.if_none(self.saturation, 'saturation')
-
-    def state_key(
-        self
-    ) -> str:
-        params = [self.state,
-                  self.saturation,
-                  self.brightness,
-                  self.hue,
-                  self.temperature]
-
-        return generate_key(
-            items=params)
 
     @staticmethod
     def from_kasa_response(

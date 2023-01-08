@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict
 
 from framework.exceptions.nulls import ArgumentNullException
 
@@ -6,7 +6,6 @@ from domain.common import Hashable
 from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
-from utils.helpers import generate_key
 
 
 class KasaPlug(KasaDevice, Hashable):
@@ -26,18 +25,10 @@ class KasaPlug(KasaDevice, Hashable):
             'device_type': KasaDeviceType.KasaPlug
         })
 
-    def state_key(
-        self
-    ) -> str:
-        params = [self.state]
-
-        return generate_key(
-            items=params)
-
     @staticmethod
     def from_kasa_response(
         kasa_response: KasaResponse
-    ) -> Union['KasaPlug', None]:
+    ) -> ['KasaPlug', None]:
 
         ArgumentNullException.if_none(kasa_response, 'kasa_response')
 

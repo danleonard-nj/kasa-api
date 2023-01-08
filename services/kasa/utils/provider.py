@@ -9,7 +9,7 @@ from framework.clients.feature_client import FeatureClientAsync
 
 from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
-from clients.event_client import EventClient
+from clients.service_bus import EventClient
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from data.repositories.kasa_device_repository import KasaDeviceRepository
@@ -29,11 +29,6 @@ from services.kasa_preset_service import KasaPresetSevice
 from services.kasa_region_service import KasaRegionService
 from services.kasa_scene_category_service import KasaSceneCategoryService
 from services.kasa_scene_service import KasaSceneService
-from httpx import AsyncClient
-
-
-def configure_http_client(container):
-    return AsyncClient(timeout=None)
 
 
 def configure_mongo_client(container):
@@ -46,10 +41,6 @@ def configure_mongo_client(container):
 
 
 def register_clients(descriptors: ServiceCollection):
-    descriptors.add_singleton(
-        dependency_type=AsyncClient,
-        factory=configure_http_client)
-
     descriptors.add_singleton(CacheClientAsync)
     descriptors.add_singleton(FeatureClientAsync)
     descriptors.add_singleton(IdentityClient)

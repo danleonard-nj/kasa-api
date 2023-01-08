@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 
 from framework.clients.cache_client import CacheClientAsync
@@ -68,7 +67,6 @@ class KasaPresetSevice:
         # Create new preset model with new preset ID
         kasa_preset = KasaPreset.create_preset(
             data=request.body)
-        kasa_preset.created_date = datetime.now()
 
         logger.info(f'Preset name: {kasa_preset.preset_name}')
 
@@ -81,69 +79,63 @@ class KasaPresetSevice:
                 preset_name=kasa_preset.preset_name)
 
         # Insert preset
-        result = await self.__preset_repository.insert(
-            document=kasa_preset.to_dict())
+        document = await self.__preset_repository.insert(
+            document=kasa_preset.to_json())
 
         await self.__cache_client.set_json(
-            value=kasa_preset.to_dict(),
+            value=document,
             ttl=CacheExpiration.days(7),
             key=CacheKey.preset_key(
                 preset_id=kasa_preset.preset_id))
 
-        logger.info(f'Inserted record: {str(result.inserted_id)}')
+        logger.info(f'Inserted record: {str(document.inserted_id)}')
         return kasa_preset
 
     async def update_preset(
         self,
-        update_request: UpdatePresetRequest
+        request: UpdatePresetRequest
     ) -> KasaPreset:
         '''
         Update a preset
         '''
 
         NullArgumentException.if_none(
-            update_request,
+            request,
             'request')
         NullArgumentException.if_none(
-            update_request.body,
+            request.body,
             'body')
         NullArgumentException.if_none_or_whitespace(
-            update_request.preset_id,
+            request.preset_id,
             'preset_id')
 
-        entity = await self.__preset_repository.get({
-            'preset_id': update_request.preset_id
-        })
+        # Verify the preset exists
+        exists = await self.__preset_repository.preset_exists_by_id(
+            preset_id=request.preset_id)
 
-        if entity is None:
+        if not exists:
             raise PresetNotFoundException(
-                preset_id=update_request.preset_id)
+                preset_id=request.preset_id)
+
+        # Expire the cached preset and the cached
+        # preset list
+        expiration_tasks = TaskCollection(
+            self.__expire_cached_preset_list(),
+            self.expire_cached_preset(preset_id=request.preset_id))
+
+        await expiration_tasks.run()
 
         kasa_preset = KasaPreset(
-            data=update_request.body)
-
-        kasa_preset.update_preset(
-            preset_name=update_request.preset_name,
-            device_type=update_request.device_type,
-            definition=update_request.definition)
+            data=request.body)
 
         # Update the preset
         logger.info(f'Preset name: {kasa_preset.preset_name}')
 
         update_result = await self.__preset_repository.update(
             selector=kasa_preset.get_selector(),
-            values=kasa_preset.to_dict())
+            values=kasa_preset.to_json())
 
         logger.info(f'Modified count: {update_result.modified_count}')
-
-        # Expire the cached preset and the cached
-        # preset list
-        expiration_tasks = TaskCollection(
-            self.__expire_cached_preset_list(),
-            self.expire_cached_preset(preset_id=update_request.preset_id))
-
-        await expiration_tasks.run()
-
         return kasa_preset
 
     async def get_preset(
@@ -157,35 +149,30 @@ class KasaPresetSevice:
         NullArgumentException.if_none_or_whitespace(
             preset_id, 'preset_id')
 
-        entity = await self.__cache_client.get_json(
+        preset = await self.__cache_client.get_json(
             key=CacheKey.preset_key(
                 preset_id=preset_id
             ))
 
-        if entity is not None:
-            preset = KasaPreset(
-                data=entity)
+        # No cached preset, fetch and cache
+        if preset is None:
+            preset = await self.__preset_repository.get({
+                'preset_id': preset_id
+            })
 
-            logger.info(f'Returning cached preset: {preset.preset_id}')
-            return preset
+            await self.__cache_client.set_json(
+                ttl=CacheExpiration.days(7),
+                value=preset,
+                key=CacheKey.preset_key(
+                    preset_id=preset_id
+                ))
 
-        entity = await self.__preset_repository.get({
-            'preset_id': preset_id
-        })
-
-        if not entity:
+        if not preset:
             raise PresetNotFoundException(
                 preset_id=preset_id)
 
-        await self.__cache_client.set_json(
-            ttl=CacheExpiration.days(7),
-            value=entity,
-            key=CacheKey.preset_key(
-                preset_id=preset_id
-            ))
-
         kasa_preset = KasaPreset(
-            data=entity)
+            data=preset)
 
         return kasa_preset
 
@@ -205,9 +192,15 @@ class KasaPresetSevice:
             'preset_id': preset_id
         })
 
-        if preset is None:
+        if not preset:
             raise PresetNotFoundException(
                 preset_id=preset_id)
+
+        # Expire cached preset if exists
+        expiration_tasks = TaskCollection(
+            self.expire_cached_preset(preset_id=preset_id),
+            self.__expire_cached_preset_list())
+        await expiration_tasks.run()
 
         kasa_preset = KasaPreset(
             data=preset)
@@ -216,12 +209,6 @@ class KasaPresetSevice:
         delete_result = await self.__preset_repository.delete({
             'preset_id': kasa_preset.preset_id
         })
-
-        # Expire cached preset if exists
-        expiration_tasks = TaskCollection(
-            self.expire_cached_preset(preset_id=preset_id),
-            self.__expire_cached_preset_list())
-        await expiration_tasks.run()
 
         return DeleteResponse(
             delete_result=delete_result)
