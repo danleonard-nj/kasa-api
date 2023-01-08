@@ -1,5 +1,3 @@
-from framework.validators.nulls import none_or_whitespace
-from framework.crypto.hashing import sha256
 
 
 class CacheKey:
@@ -36,14 +34,8 @@ class CacheKey:
         return f'scene-{scene_id}'
 
     @staticmethod
-    def auth_token(
-        client: str,
-        scope: str = None
-    ) -> str:
-        if not none_or_whitespace(scope):
-            hashed_scope = sha256(scope)
-            return f'auth-{client}-{hashed_scope}'
-        return f'auth-{client}'
+    def auth_token(client_name):
+        return f'client-auth-token-{client_name}'
 
     @staticmethod
     def scene_list():

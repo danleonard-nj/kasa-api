@@ -34,12 +34,6 @@ class KasaDevice(Serializable, Selectable):
         }
 
     @abstractmethod
-    def state_key(
-        self
-    ) -> str:
-        raise NotImplementedError()
-
-    @abstractmethod
     def to_kasa_request(
         self,
         parameters: Dict

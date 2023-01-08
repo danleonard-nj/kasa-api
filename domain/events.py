@@ -70,14 +70,12 @@ class StoreKasaClientResponseEvent(ApiMessage):
         kasa_response: dict,
         device_id: str,
         preset_id: str,
-        state_key: str,
         base_url: str,
         token: str
     ):
         self.kasa_response = kasa_response
         self.device_id = device_id
         self.preset_id = preset_id
-        self.state_key = state_key
 
         super().__init__(
             base_url,
@@ -90,8 +88,7 @@ class StoreKasaClientResponseEvent(ApiMessage):
         return {
             'device_id': self.device_id,
             'preset_id': self.preset_id,
-            'client_response': self.kasa_response,
-            'state_key': self.state_key
+            'client_response': self.kasa_response
         }
 
     def get_endpoint(

@@ -1,12 +1,11 @@
-from framework.logger.providers import get_logger
-from framework.rest.blueprints.meta import MetaBlueprint
-from framework.validators.nulls import none_or_whitespace
-from quart import request
-
 from domain.rest import (CreateSceneCategoryRequest, CreateSceneRequest,
                          RunSceneRequest, UpdateSceneRequest)
-from services.kasa_scene_category_service import KasaSceneCategoryService
+from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
+from quart import request
 from services.kasa_scene_service import KasaSceneService
+from services.kasa_scene_category_service import KasaSceneCategoryService
+from utils.meta import MetaBlueprint
 
 logger = get_logger(__name__)
 scene_bp = MetaBlueprint('scene_bp', __name__)
@@ -52,7 +51,6 @@ async def create_scene(container):
     kasa_scene_service: KasaSceneService = container.resolve(
         KasaSceneService)
 
-    # TODO: Move to provider, use new framework exceptions
     body = await request.get_json()
     if body is None:
         raise Exception('No request body')

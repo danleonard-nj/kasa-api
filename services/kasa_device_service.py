@@ -196,29 +196,22 @@ class KasaDeviceService:
             f'Set device state: {device.device_id}: Preset: {preset.preset_id}')
 
         # Fetch the Kasa client request from cache if we have it
-        # kasa_request = await self.__cache_client.get_json(
-        #     key=CacheKey.kasa_request(
-        #         preset_id=preset.preset_id,
-        #         device_id=device.device_id))
+        kasa_request = await self.__cache_client.get_json(
+            key=CacheKey.kasa_request(
+                preset_id=preset.preset_id,
+                device_id=device.device_id))
 
-        # if kasa_request is None:
-        typed_device = preset.to_device_preset(
-            device=device)
-
-        kasa_request = preset.to_request(
-            device=typed_device).get_request_body()
+        if kasa_request is None:
+            kasa_request = preset.to_request(
+                device=device).get_request_body()
 
         logger.info(f'Sending Kasa device state request')
-
-        state_key = typed_device.state_key()
-        logger.info(f'Device state key: {device.device_name}: {state_key}')
 
         # Run Kasa client commands
         client_results = await self.__kasa_client.set_device_state(
             kasa_request=kasa_request,
             device_id=device.device_id,
-            preset_id=preset.preset_id,
-            state_key=state_key)
+            preset_id=preset.preset_id)
 
         # TODO: Clear this up, do these cases actually happen?
         if isinstance(client_results, list):

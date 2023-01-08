@@ -2,6 +2,9 @@ from azure.servicebus import ServiceBusMessage, TransportType
 from azure.servicebus.aio import ServiceBusClient
 from framework.configuration.configuration import Configuration
 from framework.logger.providers import get_logger
+from framework.validators.nulls import not_none
+
+from domain.exceptions import NullArgumentException
 
 logger = get_logger(__name__)
 
@@ -21,9 +24,6 @@ class EventClient:
             logging_enable=True,
             transport_type=TransportType.Amqp)
 
-        self.__sender = self.__client.get_queue_sender(
-            queue_name=self.__queue_name)
-
     async def send_messages(
         self,
         messages: list[ServiceBusMessage]
@@ -32,6 +32,7 @@ class EventClient:
         Send a batch of service bus messages
         '''
 
+        NullArgumentException.if_none(messages, 'messages')
         logger.info(f'Getting service bus queue sender')
 
         # TODO: Batch the mesages batches to prevent exceeding max batch size
@@ -41,7 +42,7 @@ class EventClient:
                 f'Adding message to batch: {message.message_id}: {message.correlation_id}')
             batch.add_message(message)
 
-        await self.__sender.send_messages(batch)
+        await self.sender.send_messages(batch)
         logger.info(f'Messages sent successfully')
 
     async def send_message(
@@ -52,9 +53,13 @@ class EventClient:
         Send a service bus message
         '''
 
-        logger.info(f'Dispatching event message')
+        NullArgumentException.if_none(message, 'message')
+        logger.info(f'Getting service bus queue sender')
 
-        await self.__sender.send_messages(
+        sender = self.__client.get_queue_sender(
+            queue_name=self.__queue_name)
+
+        await sender.send_messages(
             message=message)
 
         logger.info(f'Message sent successfully')
