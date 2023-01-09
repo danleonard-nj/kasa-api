@@ -1,12 +1,10 @@
-from queue import Queue
-
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration import Configuration
 from framework.logger import get_logger
 from framework.validators.nulls import none_or_whitespace
 
 from clients.identity_client import IdentityClient
-from clients.service_bus import EventClient
+from clients.event_client import EventClient
 from domain.cache import CacheKey
 from domain.events import StoreKasaClientResponseEvent
 
@@ -62,7 +60,8 @@ class KasaEventService:
         self,
         device_id: str,
         preset_id: str,
-        client_response: dict
+        client_response: dict,
+        state_key: str
     ) -> None:
         '''
         Dispatch a client response event to store
@@ -76,6 +75,7 @@ class KasaEventService:
             kasa_response=client_response,
             device_id=device_id,
             preset_id=preset_id,
+            state_key=state_key,
             base_url=self.__base_url,
             token=token)
 

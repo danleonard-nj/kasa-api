@@ -1,3 +1,4 @@
+from typing import Dict
 import uuid
 from datetime import datetime
 
@@ -18,6 +19,7 @@ class KasaClientResponse(Serializable):
         self.device_id = data.get('device_id')
         self.preset_id = data.get('preset_id')
         self.client_response = data.get('client_response')
+        self.state_key = data.get('state_key')
         self.sync_status = data.get('sync_status')
         self.sync_reason = data.get('sync_reason')
         self.created_date = data.get('created_date')
@@ -43,6 +45,7 @@ class KasaClientResponse(Serializable):
     ):
         self.client_response = request.client_response
         self.preset_id = request.preset_id
+        self.state_key = request.state_key
 
         self.modified_date = datetime.now()
 
@@ -60,12 +63,14 @@ class KasaClientResponse(Serializable):
     def create_client_response(
         device_id: str,
         preset_id: str,
-        client_response
+        client_response: Dict,
+        state_key: str
     ):
         return KasaClientResponse({
             'client_response_id': str(uuid.uuid4()),
             'device_id': device_id,
             'preset_id': preset_id,
             'client_response': client_response,
+            'state_key': state_key,
             'created_date': datetime.now()
         })

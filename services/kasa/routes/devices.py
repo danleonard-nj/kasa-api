@@ -2,7 +2,7 @@ from framework.logger.providers import get_logger
 from quart import request
 
 from providers.kasa_device_provider import KasaDeviceProvider
-from utils.meta import MetaBlueprint
+from framework.rest.blueprints.meta import MetaBlueprint
 
 logger = get_logger(__name__)
 devices_bp = MetaBlueprint('devices_bp', __name__)

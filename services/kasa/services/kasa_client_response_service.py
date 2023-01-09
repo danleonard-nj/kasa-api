@@ -32,6 +32,12 @@ class KasaClientResponseService:
                 sync_status=False,
                 sync_reason=SyncStatusReason.ClientResponseError)
 
+        # Sync status true if client returns success
+        else:
+            model.update_sync_status(
+                sync_status=True,
+                sync_reason=SyncStatusReason.ClientResponseSuccess)
+
         return model
 
     async def update_client_response(
@@ -58,7 +64,8 @@ class KasaClientResponseService:
             return await self.create_client_response(
                 device_id=request.device_id,
                 preset_id=request.preset_id,
-                client_response=request.client_response)
+                client_response=request.client_response,
+                state_key=request.state_key)
 
         model = KasaClientResponse(
             data=entity)
@@ -83,7 +90,8 @@ class KasaClientResponseService:
         self,
         device_id: str,
         preset_id: str,
-        client_response: Dict
+        client_response: Dict,
+        state_key: str
     ) -> Dict:
         '''
         Create a client response for a given device
@@ -94,7 +102,8 @@ class KasaClientResponseService:
         model = KasaClientResponse.create_client_response(
             device_id=device_id,
             preset_id=preset_id,
-            client_response=client_response)
+            client_response=client_response,
+            state_key=state_key)
 
         model = self.__handle_sync_status_update(
             model=model)

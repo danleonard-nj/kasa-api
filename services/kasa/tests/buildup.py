@@ -7,15 +7,27 @@ from unittest.mock import AsyncMock, Mock
 from framework.clients import CacheClientAsync
 from framework.di.service_provider import ServiceCollection, ServiceProvider
 from motor.motor_asyncio import AsyncIOMotorClient
+from framework.logger import get_logger
 
 from utils.provider import ContainerProvider
 
+logger = get_logger(__name__)
+
 REDIS_HOST = os.environ.get('REDIS_HOST') or 'localhost'
-MONGO_HOST = os.environ.get('MONGO_HOST') or 'localhost'
+
+
+def get_mongo_cnxn():
+    mongo_host = os.environ.get('MONGO_HOST') or 'localhost'
+    mongo_port = os.environ.get('LOCAL_MONGO_PORT_OVERRIDE', 27017)
+
+    mongo_cnxn = f'mongodb://{mongo_host}:{mongo_port}'
+    logger.info(f'Mongo: {mongo_cnxn}')
+
+    return mongo_cnxn
 
 
 def configure_test_client(container):
-    client = AsyncIOMotorClient(F'mongodb://{MONGO_HOST}:27017')
+    client = AsyncIOMotorClient(get_mongo_cnxn())
     return client
 
 
