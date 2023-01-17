@@ -62,11 +62,21 @@ class InvalidDeviceTypeException(Exception):
         super().__init__(f"'{device_type}' is not a known device type")
 
 
+class InvalidDeviceException(Exception):
+    def __init__(self, device_id, *args: object, **kwargs) -> None:
+        super().__init__(f"Device with the ID '{device_id}' is not valid")
+
+
 class PresetNotFoundException(NotFoundException):
     def __init__(self, preset_id, *args: object) -> None:
         super().__init__(
             object_name='preset',
             object_id=preset_id)
+
+
+class InvalidPresetException(Exception):
+    def __init__(self, preset_id, *args: object, **kwargs) -> None:
+        super().__init__(f"Preset with the ID '{preset_id}' is not valid")
 
 
 class SceneNotFoundException(NotFoundException):

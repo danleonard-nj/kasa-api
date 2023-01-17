@@ -1,4 +1,5 @@
 
+from unicodedata import decimal
 from framework.auth.azure import AzureAd
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
@@ -13,6 +14,7 @@ from clients.event_client import EventClient
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from data.repositories.kasa_device_repository import KasaDeviceRepository
+from data.repositories.kasa_device_state_repository import KasaDeviceStateRepository
 from data.repositories.kasa_preset_repository import KasaPresetRepository
 from data.repositories.kasa_region_repository import KasaRegionRepository
 from data.repositories.kasa_scene_category_repository import \
@@ -21,6 +23,7 @@ from data.repositories.kasa_scene_repository import KasaSceneRepository
 from domain.kasa.auth import configure_azure_ad
 from providers.kasa_client_response_provider import KasaClientResponseProvider
 from providers.kasa_device_provider import KasaDeviceProvider
+from providers.kasa_device_state_provider import KasaDeviceStateProvider
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_event_service import KasaEventService
@@ -29,6 +32,7 @@ from services.kasa_preset_service import KasaPresetSevice
 from services.kasa_region_service import KasaRegionService
 from services.kasa_scene_category_service import KasaSceneCategoryService
 from services.kasa_scene_service import KasaSceneService
+from services.kasa_device_state_service import KasaDeviceStateService
 from httpx import AsyncClient
 
 
@@ -64,6 +68,7 @@ def register_repositories(descriptors: ServiceCollection):
     descriptors.add_singleton(KasaPresetRepository)
     descriptors.add_singleton(KasaClientResponseRepository)
     descriptors.add_singleton(KasaSceneCategoryRepository)
+    descriptors.add_singleton(KasaDeviceStateRepository)
 
 
 def register_services(descriptors: ServiceCollection):
@@ -75,11 +80,13 @@ def register_services(descriptors: ServiceCollection):
     descriptors.add_singleton(KasaRegionService)
     descriptors.add_singleton(KasaEventService)
     descriptors.add_singleton(KasaClientResponseService)
+    descriptors.add_singleton(KasaDeviceStateService)
 
 
 def register_providers(descriptors: ServiceCollection):
     descriptors.add_singleton(KasaDeviceProvider)
     descriptors.add_singleton(KasaClientResponseProvider)
+    descriptors.add_singleton(KasaDeviceStateProvider)
 
 
 class ContainerProvider(ProviderBase):

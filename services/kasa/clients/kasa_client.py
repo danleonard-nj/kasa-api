@@ -108,12 +108,12 @@ class KasaClient:
         response = await self.__send_request(
             json=kasa_request)
 
-        if device_id is not None:
-            await self.__event_service.send_client_response_event(
-                device_id=device_id,
-                preset_id=preset_id,
-                client_response=response.data,
-                state_key=state_key)
+        # if device_id is not None:
+        #     await self.__event_service.send_client_response_event(
+        #         device_id=device_id,
+        #         preset_id=preset_id,
+        #         client_response=response.data,
+        #         state_key=state_key)
 
         return response
 
@@ -162,7 +162,7 @@ class KasaClient:
         await self.__cache_client.set_cache(
             key=CacheKey.kasa_token(),
             value=token_response.token,
-            ttl=30)
+            ttl=60 * 4)
 
         return token_response.token
 

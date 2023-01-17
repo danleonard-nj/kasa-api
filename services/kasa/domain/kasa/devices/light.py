@@ -1,7 +1,7 @@
 from typing import Dict, Union
 
-from framework.exceptions.nulls import ArgumentNullException
 from framework.crypto.hashing import sha256
+from framework.exceptions.nulls import ArgumentNullException
 
 from domain.common import Hashable
 from domain.constants import KasaDeviceType

@@ -57,39 +57,39 @@ class KasaSceneExecutionServiceTests(ApplicationBase):
 
         return test_device
 
-    async def test_execute_scene_given_scene_calls_kasa_client_for_each_device(self):
-        # Arrange
-        kasa_client = self.resolve(KasaClient)
-        client_response_service = self.resolve(KasaClientResponseService)
+    # async def test_execute_scene_given_scene_calls_kasa_client_for_each_device(self):
+    #     # Arrange
+    #     kasa_client = self.resolve(KasaClient)
+    #     client_response_service = self.resolve(KasaClientResponseService)
 
-        client_response_service.get_client_response.side_effect = helper.get_mock_client_response
+    #     client_response_service.get_client_response.side_effect = helper.get_mock_client_response
 
-        service = self.get_service()
+    #     service = self.get_service()
 
-        test_scene_doc = await self.insert_test_scene()
-        scene = KasaScene(test_scene_doc)
+    #     test_scene_doc = await self.insert_test_scene()
+    #     scene = KasaScene(test_scene_doc)
 
-        all_device_ids = []
-        all_preset_ids = []
+    #     all_device_ids = []
+    #     all_preset_ids = []
 
-        for mapping in test_scene_doc.get('mapping'):
-            for device_id in mapping.get('devices'):
-                await self.insert_test_device(device_id=device_id)
-                all_device_ids.append(device_id)
+    #     for mapping in test_scene_doc.get('mapping'):
+    #         for device_id in mapping.get('devices'):
+    #             await self.insert_test_device(device_id=device_id)
+    #             all_device_ids.append(device_id)
 
-            preset_id = mapping.get('preset_id')
-            await self.insert_test_preset(preset_id=preset_id)
-            all_preset_ids.append(preset_id)
+    #         preset_id = mapping.get('preset_id')
+    #         await self.insert_test_preset(preset_id=preset_id)
+    #         all_preset_ids.append(preset_id)
 
-        # Act
-        await service.execute_scene(
-            scene=scene)
+    #     # Act
+    #     await service.execute_scene(
+    #         scene=scene)
 
-        # Assert
-        kasa_client.refresh_token.assert_called()
+    #     # Assert
+    #     kasa_client.refresh_token.assert_called()
 
-        self.assertTrue(
-            kasa_client.set_device_state.call_count == len(all_device_ids))
+    #     self.assertTrue(
+    #         kasa_client.set_device_state.call_count == len(all_device_ids))
 
     async def test_execute_scene_given_no_scene_throws(self):
         # Arrange

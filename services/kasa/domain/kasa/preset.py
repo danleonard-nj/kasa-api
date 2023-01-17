@@ -1,3 +1,4 @@
+from abc import abstractmethod, abstractproperty
 import uuid
 from datetime import datetime
 from typing import Dict, Union
@@ -49,6 +50,12 @@ class KasaPreset(Serializable, Cacheable, Selectable):
         self.device_type = device_type
         self.definition = definition
         self.modified_date = datetime.now()
+
+    @abstractmethod
+    def get_power_state(
+        self
+    ):
+        raise NotImplementedError()
 
     def get_selector(self):
         return {

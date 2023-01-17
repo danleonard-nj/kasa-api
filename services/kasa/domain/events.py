@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Dict
 
 from azure.servicebus import ServiceBusMessage
 from framework.serialization import Serializable
@@ -99,3 +100,29 @@ class StoreKasaClientResponseEvent(ApiMessage):
         base_url: str
     ) -> str:
         return f'{base_url}/api/event/device/response'
+
+
+class SetDeviceStateEvent(ApiMessage):
+    def __init__(
+        self,
+        body: Dict,
+        base_url: str,
+        token: str
+    ):
+        self.__body = body
+
+        super().__init__(
+            base_url,
+            'POST',
+            token)
+
+    def get_body(
+        self
+    ) -> dict:
+        return self.__body
+
+    def get_endpoint(
+        self,
+        base_url: str
+    ) -> str:
+        return f'{base_url}/api/event/device/state'

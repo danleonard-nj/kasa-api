@@ -1,3 +1,4 @@
+from typing import List
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration import Configuration
 from framework.logger import get_logger
@@ -6,7 +7,8 @@ from framework.validators.nulls import none_or_whitespace
 from clients.identity_client import IdentityClient
 from clients.event_client import EventClient
 from domain.cache import CacheKey
-from domain.events import StoreKasaClientResponseEvent
+from domain.events import SetDeviceStateEvent, StoreKasaClientResponseEvent
+from domain.rest import SetDeviceStateRequest
 
 logger = get_logger(__name__)
 
@@ -82,7 +84,30 @@ class KasaEventService:
         logger.info(
             f'{preset_id}: {device_id}: Client response event dispatched')
 
-        await self.__queue_client.send_message(
+        self.__queue_client.send_message(
             message=event.to_service_bus_message())
 
         logger.info(f'{preset_id}: {device_id}: Client response event sent')
+
+    async def dispatch_device_state_update_events(
+        self,
+        update_requests: List[SetDeviceStateRequest]
+    ):
+        logger.info(f'Dispatching update state requests')
+
+        token = await self.__get_client_token()
+
+        # Create device state update events
+        update_events = [SetDeviceStateEvent(
+            body=update_request,
+            base_url=self.__base_url,
+            token=token)
+            for update_request in update_requests]
+
+        # Create service bus messages from event messages
+        event_messages = [update_event.to_service_bus_message()
+                          for update_event in update_events]
+
+        # Send message batch
+        self.__queue_client.send_messages(
+            messages=event_messages)

@@ -79,6 +79,15 @@ class KasaSceneMapping:
         return scene_mapping
 
 
+class KasaPresetDeviceMapping:
+    def __init__(
+        self,
+        mapping: Dict
+    ):
+        self.preset_id = mapping.get('preset_id')
+        self.devices = mapping.get('devices')
+
+
 class KasaScene(Serializable, Cacheable):
     def __init__(self, data):
         self.scene_id = data.get('scene_id')
@@ -99,6 +108,15 @@ class KasaScene(Serializable, Cacheable):
         return {
             'scene_id': self.scene_id
         }
+
+    def get_mapping(
+        self
+    ):
+        return [
+            KasaPresetDeviceMapping(
+                mapping=mapping)
+            for mapping in self.mapping
+        ]
 
     def get_scene_mapping(
         self

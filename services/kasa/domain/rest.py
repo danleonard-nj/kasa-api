@@ -332,3 +332,25 @@ class UpdateClientResponseRequest:
         self.preset_id = data.get('preset_id')
         self.client_response = data.get('client_response')
         self.state_key = data.get('state_key')
+
+
+class SetDeviceStateRequest(Serializable):
+    def __init__(
+        self,
+        data: Dict
+    ):
+        self.device_id = data.get('device_id')
+        self.preset_id = data.get('preset_id')
+        self.state_key = data.get('state_key')
+
+    @staticmethod
+    def create_request(
+        device_id: str,
+        preset_id: str,
+        state_key: str
+    ):
+        return SetDeviceStateRequest({
+            'device_id': device_id,
+            'preset_id': preset_id,
+            'state_key': state_key
+        })

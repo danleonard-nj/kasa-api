@@ -70,7 +70,6 @@ class KasaSceneService:
         NullArgumentException.if_none(request, 'request')
 
         logger.info('Create scene')
-        await self.__expire_cached_scene_list()
 
         # Verify the scene doesn't already exist
         scene_exists = await self.__scene_repository.scene_exists(
@@ -87,12 +86,6 @@ class KasaSceneService:
         await self.__scene_repository.insert(
             document=kasa_scene.to_dict())
 
-        await self.__cache_client.set_json(
-            value=kasa_scene.to_dict(),
-            ttl=CacheExpiration.days(7),
-            key=CacheKey.scene_key(
-                scene_id=kasa_scene.scene_id))
-
         return kasa_scene
 
     async def get_scene(
@@ -108,24 +101,9 @@ class KasaSceneService:
 
         logger.info(f'Get scene: {scene_id}')
 
-        # Attempt to fetch the scene from cache
-        scene = await self.__cache_client.get_json(
-            key=CacheKey.scene_key(
-                scene_id=scene_id
-            ))
-
-        if scene is None:
-            logger.info(f'No cached value, fetching scene')
-            scene = await self.__scene_repository.get({
-                'scene_id': scene_id
-            })
-
-            await self.__cache_client.set_json(
-                ttl=CacheExpiration.days(7),
-                value=scene,
-                key=CacheKey.scene_key(
-                    scene_id=scene_id
-                ))
+        scene = await self.__scene_repository.get({
+            'scene_id': scene_id
+        })
 
         # Throw if the scene is not found
         if scene is None:
@@ -247,18 +225,7 @@ class KasaSceneService:
 
         logger.info('Get all scenes')
 
-        scenes = await self.__cache_client.get_json(
-            key=CacheKey.scene_list())
-
-        if scenes is None:
-            logger.info(f'No cached value, fetching scene list')
-            scenes = await self.__scene_repository.get_all()
-
-            await self.__cache_client.set_json(
-                key=CacheKey.scene_list(),
-                ttl=CacheExpiration.days(7),
-                value=scenes
-            )
+        scenes = await self.__scene_repository.get_all()
 
         kasa_scenes = [
             KasaScene(data=entity)
@@ -306,102 +273,3 @@ class KasaSceneService:
         return await self.__execution_service.execute_scene(
             scene=scene,
             region_id=request.region_id)
-
-    # async def create_scene_category(
-    #     self,
-    #     request: CreateSceneCategoryRequest
-    # ) -> KasaSceneCategory:
-
-    #     NullArgumentException.if_none(
-    #         request, 'request')
-
-    #     logger.info(f'Create scene category: {request.scene_category}')
-
-    #     if request.scene_category is None or request.scene_category == '':
-    #         raise Exception(f'Scene category name is required')
-
-    #     category = await self.__scene_category_repository.get({
-    #         'scene_category': request.scene_category
-    #     })
-
-    #     if category is not None:
-    #         raise Exception(
-    #             f"A scene category with the name '{request.scene_category}' exists")
-
-    #     scene_category = KasaSceneCategory.create_category(
-    #         category_name=request.scene_category)
-
-    #     entity = scene_category.to_dict()
-    #     logger.info(f'Scene category: {entity}')
-
-    #     await self.__scene_category_repository.insert(
-    #         entity)
-
-    #     return scene_category
-
-    # async def get_scene_categories(
-    #     self,
-    # ) -> List[KasaSceneCategory]:
-    #     logger.info(f'Get scene categories')
-
-    #     entities = await self.__scene_category_repository.get_all()
-
-    #     categories = [
-    #         KasaSceneCategory(data=entity)
-    #         for entity in entities
-    #     ]
-
-    #     return categories
-
-    # async def delete_scene_category(
-    #     self,
-    #     scene_category_id: str,
-    # ) -> List[KasaSceneCategory]:
-    #     logger.info(f'Get scene categories')
-
-    #     if none_or_whitespace(scene_category_id):
-    #         raise Exception('Scene category ID is required')
-
-    #     category_entity = await self.__scene_category_repository.get({
-    #         'scene_category_id': scene_category_id
-    #     })
-
-    #     if category_entity is None:
-    #         raise Exception(
-    #             f"No scene category with the ID '{scene_category_id}' exists")
-
-    #     logger.info('Removing scenes from deleted category')
-
-    #     category = KasaSceneCategory(
-    #         data=category_entity)
-
-    #     # Fetch all scenes tied to the scene category
-    #     scene_entities = await self.__scene_repository.query(
-    #         filter=category.get_selector())
-
-    #     logger.info(f'Scenes in category: {len(scene_entities)}')
-
-    #     if any(scene_entities):
-    #         update_scenes = TaskCollection()
-
-    #         for scene_entity in scene_entities:
-    #             scene = KasaScene(data=scene_entity)
-
-    #             # Remove the scene from the category
-    #             logger.info(f'Removing scene from category: {scene.scene_id}')
-    #             scene.scene_category_id = None
-
-    #             update_scenes.add_task(
-    #                 self.__scene_repository.replace(
-    #                     selector=scene.get_selector(),
-    #                     document=scene.to_dict()))
-
-    #         await update_scenes.run()
-
-    #     result = await self.__scene_category_repository.delete({
-    #         'scene_category_id': scene_category_id
-    #     })
-
-    #     return {
-    #         'deleted': result.deleted_count
-    #     }

@@ -1,19 +1,23 @@
-from typing import List
+import asyncio
+from typing import List, Union
 
+from framework.clients.feature_client import FeatureClientAsync
 from framework.concurrency import TaskCollection
 from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
 
 from clients.kasa_client import KasaClient
 from domain.features import FeatureKey
-from domain.kasa.client_response import KasaClientResponse
-from domain.kasa.scene import KasaScene
-from domain.rest import MappedSceneRequest
+from domain.kasa.device import KasaDevice
+from domain.kasa.preset import KasaPreset
+from domain.kasa.scene import KasaPresetDeviceMapping, KasaScene
+from domain.rest import SetDeviceStateRequest
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_device_service import KasaDeviceService
+from services.kasa_device_state_service import KasaDeviceStateService
+from services.kasa_event_service import KasaEventService
 from services.kasa_preset_service import KasaPresetSevice
-from framework.clients.feature_client import FeatureClientAsync
-from utils.helpers import get_map
+from framework.validators.nulls import none_or_whitespace
 
 logger = get_logger(__name__)
 
@@ -25,10 +29,12 @@ class KasaExecutionService:
         preset_service: KasaPresetSevice,
         feature_client: FeatureClientAsync,
         client_response_service: KasaClientResponseService,
+        kasa_device_state_service: KasaDeviceStateService,
+        event_service: KasaEventService,
         kasa_client: KasaClient
     ):
         ArgumentNullException.if_none(device_service, 'device_service')
-        ArgumentNullException.if_none(preset_service, 'preset_service')
+        ArgumentNullException.if_none(preset_service, 'preset_se                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              rvice')
         ArgumentNullException.if_none(kasa_client, 'kasa_client')
 
         ArgumentNullException.if_none(
@@ -37,118 +43,159 @@ class KasaExecutionService:
             client_response_service, 'client_response_service')
 
         self.__device_service = device_service
-        self.__preset_service = preset_service
-        self.__client_response_service = client_response_service
         self.__feature_client = feature_client
-        self.__kasa_client = kasa_client
+        self.__device_state_service = kasa_device_state_service
+        self.__event_service = event_service
+        self.__preset_service = preset_service
 
-    async def __get_client_responses(
+    async def __is_device_update_eligible(
         self,
-        device_ids: List[str]
-    ) -> KasaClientResponse:
+        device: KasaDevice,
+        preset: KasaPreset
+    ) -> bool:
+        # Fetch the stored device state if flag is enabled
+        logger.info(f'Fetching state for device: {device.device_id}')
+        device_state = await self.__device_state_service.get_device_state(
+            device_id=device.device_id)
 
-        get_responses = TaskCollection(*[
-            self.__client_response_service.get_client_response(
-                device_id=device_id
-            ) for device_id in device_ids])
+        logger.info(f'Device state: {device_state.to_dict()}')
 
-        return await get_responses.run()
+        # Get the target state key (state of the device set
+        # to the target preset)
+        device_preset = preset.to_device_preset(
+            device=device)
+
+        # Target device preset state key
+        current_key = device_state.state_key
+        target_key = device_preset.state_key()
+
+        logger.info(f'{device.device_name}: {current_key} -> {target_key}')
+
+        return device_state.state_key != target_key,
+
+    async def set_device_state(
+        self,
+        preset: KasaPreset,
+        device_id: str,
+        region_id: str = None
+    ) -> Union[SetDeviceStateRequest, None]:
+
+        logger.info(f'Setting state for device: {device_id}')
+
+        device = await self.__device_service.get_device(
+            device_id=device_id)
+
+        use_stored_device_state = await self.__feature_client.is_enabled(
+            feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
+
+        # If state compare flag is enabled, compare the current
+        # (stored) device state with the target state and don't
+        # send the update request if no change occurs
+        if use_stored_device_state:
+            logger.info(f'{device.device_name}: Comparing device state')
+
+            update_eligible = await self.__is_device_update_eligible(
+                device=device,
+                preset=preset)
+
+            logger.info(
+                f'Device: {device.device_name}: Eligible: {update_eligible}')
+
+            # Short out if device isn't eligible for update
+            if not update_eligible:
+                logger.info(f'Device: {device.device_name}: Skipping update')
+                return
+
+        # Skip the update if this device is not in the region
+        # if a region is provided
+        if (region_id is not None
+                and region_id != device.device_id):
+
+            logger.info(f'Device excluded by region: {device_id}')
+            return
+
+        logger.info(f'Set preset: {device.to_dict()}: {preset.preset_name}')
+
+        # Send the device update request to the Kasa client
+        await self.__device_service.set_device_state(
+            preset=preset,
+            device=device)
+
+        typed_device = preset.to_device_preset(
+            device=device)
+
+        state_key = typed_device.state_key()
+
+        # state_key = device.state_key()
+        logger.info(f'Device key: {device_id}: {state_key}')
+
+        # Return the updated device state key
+        return SetDeviceStateRequest.create_request(device_id=device_id,
+                                                    preset_id=preset.preset_id,
+                                                    state_key=state_key)
 
     async def execute_scene(
         self,
         scene: KasaScene,
-        region_id: str = None,
-    ) -> List[MappedSceneRequest]:
-        '''
-        Execute a scene by sending mapped device presets to
-        the Kasa client and dispatch events to store the last
-        known state of the device
-        '''
+        region_id: str = None
+    ):
+        logger.info(f'Run scene: {scene.scene_name}')
+        scene_mapping = scene.get_mapping()
 
-        ArgumentNullException.if_none(scene, 'scene')
+        logger.info(f'Fetching scene presets')
+        presets = await self.__get_presets(
+            mappings=scene_mapping)
 
-        ignore_client_responses = await self.__feature_client.is_enabled(
-            feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
-
-        # Refresh the token if necessary so when the events are processed
-        # there is a working token available
-        logger.info(f'Refresh cached Kasa token')
-        await self.__kasa_client.refresh_token()
-
-        scene_mapping = scene.get_scene_mapping()
-
-        get_devices_presets = TaskCollection(
-            self.__device_service.get_devices(
-                device_ids=scene_mapping.device_ids,
-                region_id=region_id),
-            self.__preset_service.get_presets(
-                preset_ids=scene_mapping.preset_ids),
-            self.__get_client_responses(
-                device_ids=scene_mapping.device_ids
-            ))
-
-        devices, presets, client_responses = await get_devices_presets.run()
-
-        devices_map = get_map(
-            items=devices,
-            key='device_id',
-            is_dict=False)
-
-        presets_map = get_map(
-            items=presets,
-            key='preset_id',
-            is_dict=False)
-
-        response_map = get_map(
-            items=client_responses,
-            key='device_id',
-            is_dict=False)
-
-        set_device_state = TaskCollection()
-        for mapping in scene_mapping.mapping:
-            device = devices_map.get(mapping.device_id)
-            preset = presets_map.get(mapping.preset_id)
-
-            # Verify the mappings are valid but do not throw for missing
-            # devices/presets to allow the rest of the scene to run
-            if device is None:
-                logger.info(
-                    f'Device {mapping.device_id} in scene {scene.scene_id} is not known')
-                continue
-
-            if preset is None:
-                logger.info(
-                    f'Preset {mapping.preset_id} in scene {scene.scene_id} is not known')
-                continue
-
-            # TODO: Need to periodically sync device current states to handle outside changed
-            # Get the last known client response for a given device and only
-            # update if the requested preset is different
-            response = response_map.get(mapping.device_id)
-
-            # TODO: Verify the preset was actually set/acknowleded (i.e. last response success)
-            if (ignore_client_responses
-                    or response is None
-                    or response.preset_id != preset.preset_id):
-
-                logger.info(
-                    f'{mapping.device_id}: {mapping.preset_id}: Setting device state')
-
-                set_device_state.add_task(
-                    self.__device_service.set_device_state(
-                        device=device,
-                        preset=preset))
-            else:
-                # TODO: Rules for certain devices to always send a device state request?
-                # Particularly devices prone to being turned on/off manually - if the device
-                # was in an off state.
-                logger.info(
-                    f'{mapping.device_id}: {mapping.preset_id}: Device is already set to requested preset')
-
-        # Run tasks to set device state and fetch a
-        # token to pass to the device state history events
-        kasa = await set_device_state.run()
-
-        return {
-            'results': kasa
+        lookups = {
+            preset.preset_id: preset
+            for preset in presets
         }
+
+        set_devices = TaskCollection()
+
+        for mapping in scene_mapping:
+            for device_id in mapping.devices:
+
+                # Only send state change requests to
+                # devices in requested regions, if a
+                # reion was provie
+                if none_or_whitespace(region_id):
+
+                    preset = lookups.get(mapping.preset_id)
+                    set_devices.add_task(self.set_device_state(
+                        device_id=device_id,
+                        preset=preset,
+                        region_id=region_id))
+
+        update_state_results = await set_devices.run()
+
+        logger.info('Firing device state update dispatch events')
+        asyncio.create_task(self.__dispatch_update_device_state_events(
+            update_state_results=update_state_results
+        ))
+
+        return update_state_results
+
+    async def __get_presets(
+        self,
+        mappings: List[KasaPresetDeviceMapping]
+    ):
+        get_presets = TaskCollection(*[
+            self.__preset_service.get_preset(
+                preset_id=mapping.preset_id)
+            for mapping in mappings
+        ])
+
+        return await get_presets.run()
+
+    async def __dispatch_update_device_state_events(
+        self,
+        update_state_results: List[Union[SetDeviceStateRequest, None]]
+    ):
+        # Filter any nulls (cases where device was not
+        # eligible for an update)
+        update_requests = [request for request
+                           in update_state_results
+                           if request is not None]
+
+        logger.info(f'Sending {len(update_requests)} update event requests')

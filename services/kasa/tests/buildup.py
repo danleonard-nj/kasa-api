@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, Mock
 
 from framework.clients import CacheClientAsync
 from framework.di.service_provider import ServiceCollection, ServiceProvider
-from motor.motor_asyncio import AsyncIOMotorClient
 from framework.logger import get_logger
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from utils.provider import ContainerProvider
 
