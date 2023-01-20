@@ -1,7 +1,7 @@
 from framework.logger.providers import get_logger
 from quart import request
 from services.kasa_sync_service import KasaSyncService
-from utils.meta import MetaBlueprint
+from framework.rest.blueprints.meta import MetaBlueprint
 
 logger = get_logger(__name__)
 sync_bp = MetaBlueprint('sync_bp', __name__)

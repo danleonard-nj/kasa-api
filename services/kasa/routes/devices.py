@@ -49,8 +49,11 @@ async def get_device_state(container, device_id):
 async def sync_devices(container):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
+    
+    destructive = request.args.get('destructive')
 
-    return await kasa_device_provider.sync_devices()
+    return await kasa_device_provider.sync_devices(
+        destructive=destructive)
 
 
 @devices_bp.configure('/api/device/<device_id>/preset/<preset_id>', methods=['POST'], auth_scheme='write')

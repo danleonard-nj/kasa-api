@@ -354,3 +354,14 @@ class SetDeviceStateRequest(Serializable):
             'preset_id': preset_id,
             'state_key': state_key
         })
+
+class DeviceSyncResponse(Serializable):
+    def __init__(
+        self,
+        destructive,
+        created,
+        removed = None
+    ):
+        self.destructive = destructive
+        self.created = created
+        self.removed = removed

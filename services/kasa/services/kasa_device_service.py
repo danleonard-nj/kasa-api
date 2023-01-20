@@ -16,7 +16,7 @@ from domain.exceptions import (DeviceNotFoundException,
                                NullArgumentException, RegionNotFoundException)
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
-from domain.rest import KasaRequest, KasaResponse, UpdateDeviceRequest
+from domain.rest import DeviceSyncResponse, KasaRequest, KasaResponse, UpdateDeviceRequest
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_region_service import KasaRegionService
 
@@ -123,53 +123,91 @@ class KasaDeviceService:
 
         return kasa_devices
 
-    @deprecated
     async def sync_devices(
-        self
+        self,
+        destructive: bool = False
     ):
         logger.info('Syncing devices')
 
-        await self.expire_cached_device_list()
-        logger.info('Fetching devices from client')
-
-        get_devices = TaskCollection(
-            self.__kasa_client.get_devices(),
-            self.__device_repository.get_all())
-
-        devices, device_entities = await get_devices.run()
-
-        known_device_ids = [KasaDevice(data=entity).device_id
-                            for entity in device_entities]
-
-        created_devices = []
-        for device in devices.device_list:
-            logger.info(device)
-
-            device_id = device.get('deviceId')
-            logger.info(f'{device_id}: Syncing device')
-
-            # Verify we have the device synced by the
-            # Kasa device ID
-            if device_id not in known_device_ids:
-                logger.info(f'{device_id}: Creating device')
-
-                # Create the device if it's not known
-                created_devices.append(device)
-
-            else:
-                logger.info(f'{device_id}: Known device')
-
-        if any(created_devices):
-            logger.info(f'Creating {len(created_devices)} new devices')
-
-            create_devices = TaskCollection([
-                self.__create_kasa_device(client_device=device)
-                for device in created_devices
-            ])
-
-            await create_devices.run()
-
-        return created_devices
+        # Fetch all known devices from database
+        device_entities = await self.__device_repository.get_all()
+        known_devices = [
+            KasaDevice(data=device)
+            for device in device_entities
+        ]
+        
+        logger.info(f'Known devices fetched: {len(known_devices)}')
+        
+        # Create a lookup by device IDs
+        known_device_lookups = {
+            device.device_id : device
+            for device in known_devices
+        }
+                
+        # Get all Kasa device from Kasa
+        # service
+        kasa_devices = await self.__kasa_client.get_devices()
+        kasa_device_list = [
+            KasaDevice.from_kasa_device_json_object(
+                kasa_device=kasa_device) 
+            for kasa_device in kasa_devices.device_list
+        ]
+        
+        logger.info(f'Kasa devices fetched: {len(kasa_device_list)}')
+        
+        # Create a lookup by device IDs
+        kasa_device_lookups = {
+            kasa_device.device_id: kasa_device 
+            for kasa_device in kasa_device_list
+        }
+      
+        known_ids = list(known_device_lookups.keys())
+        kasa_ids = list(kasa_device_lookups.keys())
+        
+        # Devices w/ a database record but
+        # are unknown to Kasa client
+        unknown_devices = list(set(known_ids) - set(kasa_ids))
+        
+        # Devices known to Kasa client but
+        # missing a database record
+        missing_devices = list(set(kasa_ids) - set(known_ids))
+        
+        logger.info(f'Unknown devices: {unknown_devices}')
+        logger.info(f'Missing devices: {missing_devices}')
+        
+        created = list()
+        for device_id in missing_devices:
+            logger.info(f'Syncing missing device: {device_id}')
+            device = kasa_device_lookups.get(device_id)
+            
+            created.append(device)
+            
+            await self.__device_repository.insert(
+                document=device.to_dict())
+            logger.info(f'Synced device: {device.to_dict()}')
+            
+        if not destructive:
+            logger.info(f'{len(created)} devices created')
+            return DeviceSyncResponse(
+                destructive=destructive,
+                created=created)
+        
+        logger.info(f'Removing unknown Kasa devices')
+        
+        removed = list()
+        for device_id in unknown_devices:
+            logger.info(f'Removing device: {device_id}')
+            device = known_device_lookups.get(device_id)
+            
+            removed.append(device)
+            
+            await self.__device_repository.delete(
+                selector=device.get_selector())
+        
+        return DeviceSyncResponse(
+                destructive=destructive,
+                created=created,
+                removed=removed)
 
     async def get_device_state(
         self,

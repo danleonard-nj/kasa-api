@@ -64,13 +64,13 @@ class KasaDeviceProvider:
             region_id=region_id)
 
     async def sync_devices(
-        self
+        self,
+        destructive: str
     ):
-        result = await self.__device_service.sync_devices()
-
-        return {
-            'sync': result
-        }
+        is_destructive = destructive == 'true'
+        
+        return await self.__device_service.sync_devices(
+            destructive=is_destructive)
 
     async def get_device_client_response(
         self,
