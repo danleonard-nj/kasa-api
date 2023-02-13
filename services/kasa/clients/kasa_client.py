@@ -1,20 +1,16 @@
-import asyncio
-
-from domain.cache import CacheKey
-from domain.constants import SemaphoreDefault
-from domain.rest import (GetDevicesRequest, KasaGetDevicesResponse,
-                         GetKasaDeviceStateRequest, KasaResponse,
-                         KasaTokenRequest, KasaTokenResponse)
 from framework.caching import MemoryCache
 from framework.clients.cache_client import CacheClientAsync
-from framework.clients.http_client import HttpClient
 from framework.configuration.configuration import Configuration
-from framework.logger.providers import get_logger
-from framework.serialization.utilities import serialize
-from framework.validators.nulls import not_none
-from services.kasa_event_service import KasaEventService
 from framework.exceptions.nulls import ArgumentNullException
+from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
 from httpx import AsyncClient
+
+from domain.cache import CacheKey
+from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
+                         KasaGetDevicesResponse, KasaResponse,
+                         KasaTokenRequest, KasaTokenResponse)
+from services.kasa_event_service import KasaEventService
 
 logger = get_logger(__name__)
 
@@ -28,9 +24,7 @@ class KasaClient:
         event_service: KasaEventService
     ):
         self.__cache_client = cache_client
-        self.__event_service = event_service
         self.__http_client = http_client
-        self.__memory_cache = MemoryCache()
 
         self.__username = configuration.kasa.get('username')
         self.__password = configuration.kasa.get('password')
@@ -42,35 +36,6 @@ class KasaClient:
             self.__password, 'password')
         ArgumentNullException.if_none_or_whitespace(
             self.__base_url, 'base_url')
-
-        self.__semaphore = None
-
-    async def __send_request(
-        self,
-        json: dict
-    ) -> KasaResponse:
-        '''
-        Send a request to the Kasa client
-        '''
-
-        ArgumentNullException.if_none(json, 'json')
-
-        kasa_token = await self.__get_kasa_token()
-
-        response = await self.__http_client.post(
-            url=f'{self.__base_url}/?token={kasa_token}',
-            json=json,
-            timeout=None)
-
-        logger.info(f'Status: {response.status_code}')
-
-        response = KasaResponse(
-            data=response.json())
-
-        if response.is_error:
-            logger.error(f'Failed to send request: {response.error_message}')
-
-        return response
 
     async def get_device_state(
         self,
@@ -94,6 +59,7 @@ class KasaClient:
     async def set_device_state(
         self,
         kasa_request: dict,
+        kasa_token: str = None,
         preset_id=None,
         device_id=None,
         state_key=None
@@ -106,7 +72,8 @@ class KasaClient:
 
         logger.info(f'Sending device state request to Kasa client')
         response = await self.__send_request(
-            json=kasa_request)
+            json=kasa_request,
+            kasa_token=kasa_token)
 
         # if device_id is not None:
         #     await self.__event_service.send_client_response_event(
@@ -135,7 +102,7 @@ class KasaClient:
 
         return response
 
-    async def __get_kasa_token(
+    async def get_kasa_token(
         self
     ) -> str:
         ''' 
@@ -165,6 +132,37 @@ class KasaClient:
             ttl=60 * 4)
 
         return token_response.token
+
+    async def __send_request(
+        self,
+        json: dict,
+        kasa_token: str = None
+    ) -> KasaResponse:
+        '''
+        Send a request to the Kasa client
+        '''
+
+        ArgumentNullException.if_none(json, 'json')
+
+        # Only grab the token if we haven't passed it
+        # down from top level
+        if none_or_whitespace(kasa_token):
+            kasa_token = await self.get_kasa_token()
+
+        response = await self.__http_client.post(
+            url=f'{self.__base_url}/?token={kasa_token}',
+            json=json,
+            timeout=None)
+
+        logger.info(f'Status: {response.status_code}')
+
+        response = KasaResponse(
+            data=response.json())
+
+        if response.is_error:
+            logger.error(f'Failed to send request: {response.error_message}')
+
+        return response
 
     async def __fetch_kasa_token_from_client(
         self
@@ -205,7 +203,7 @@ class KasaClient:
         if cached_token is None:
             logger.info(f'Refreshing Kasa client token')
 
-            token = await self.__get_kasa_token()
+            token = await self.get_kasa_token()
             logger.info(f'Token: {token}')
         else:
             logger.info('Kasa client token is valid')

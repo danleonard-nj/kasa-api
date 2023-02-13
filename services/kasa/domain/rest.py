@@ -262,14 +262,6 @@ class SetDevicePresetResponse(Serializable):
         self.kasa_request = kasa_request
         self.kasa_response = kasa_response
 
-    def to_dict(
-        self
-    ) -> Dict:
-        return {
-            'request': self.kasa_request.to_dict(),
-            'response': self.kasa_response.to_dict()
-        }
-
 
 class KasaTokenResponse(KasaResponse):
     def __init__(self, data):
@@ -355,12 +347,13 @@ class SetDeviceStateRequest(Serializable):
             'state_key': state_key
         })
 
+
 class DeviceSyncResponse(Serializable):
     def __init__(
         self,
         destructive,
         created,
-        removed = None
+        removed=None
     ):
         self.destructive = destructive
         self.created = created

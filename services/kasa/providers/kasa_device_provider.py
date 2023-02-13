@@ -2,10 +2,12 @@ from typing import Dict
 
 from framework.logger import get_logger
 
-from domain.exceptions import RequiredRouteSegmentException
 from domain.rest import SetDevicePresetResponse, UpdateDeviceRequest
+from framework.concurrency import TaskCollection
 from services.kasa_device_service import KasaDeviceService
 from framework.exceptions.nulls import ArgumentNullException
+
+from services.kasa_preset_service import KasaPresetSevice
 
 logger = get_logger(__name__)
 
@@ -13,9 +15,11 @@ logger = get_logger(__name__)
 class KasaDeviceProvider:
     def __init__(
         self,
-        device_service: KasaDeviceService
+        device_service: KasaDeviceService,
+        preset_service: KasaPresetSevice
     ):
         self.__device_service = device_service
+        self.__preset_service = preset_service
 
     async def get_all_devices(
         self
@@ -68,7 +72,7 @@ class KasaDeviceProvider:
         destructive: str
     ):
         is_destructive = destructive == 'true'
-        
+
         return await self.__device_service.sync_devices(
             destructive=is_destructive)
 
@@ -106,9 +110,17 @@ class KasaDeviceProvider:
 
         logger.info(f'Device: {device_id}: Preset: {preset_id}')
 
+        get_device_presets = TaskCollection(
+            self.__device_service.get_device(
+                device_id=device_id),
+            self.__preset_service.get_preset(
+                preset_id=preset_id))
+
+        device, preset = await get_device_presets.run()
+
         kasa_request, kasa_response = await self.__device_service.set_device_state(
-            device_id=device_id,
-            preset_id=preset_id)
+            device=device,
+            preset=preset)
 
         response = SetDevicePresetResponse(
             kasa_request=kasa_request,

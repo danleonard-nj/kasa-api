@@ -5,6 +5,7 @@ from framework.clients.feature_client import FeatureClientAsync
 from framework.concurrency import TaskCollection
 from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
 
 from clients.kasa_client import KasaClient
 from domain.features import FeatureKey
@@ -17,7 +18,6 @@ from services.kasa_device_service import KasaDeviceService
 from services.kasa_device_state_service import KasaDeviceStateService
 from services.kasa_event_service import KasaEventService
 from services.kasa_preset_service import KasaPresetSevice
-from framework.validators.nulls import none_or_whitespace
 
 logger = get_logger(__name__)
 
@@ -47,6 +47,95 @@ class KasaExecutionService:
         self.__device_state_service = kasa_device_state_service
         self.__event_service = event_service
         self.__preset_service = preset_service
+        self.__kasa_client = kasa_client
+
+    async def execute_scene(
+        self,
+        scene: KasaScene,
+        region_id: str = None
+    ):
+        logger.info(f'Run scene: {scene.scene_name}')
+
+        # Use a single token for all scene requests
+        logger.info('Fetching token for scene device requests')
+        kasa_token = await self.__kasa_client.get_kasa_token()
+
+        logger.info(f'Kasa token: {kasa_token}')
+
+        # Generate the device -> preset mapping
+        scene_mapping = scene.get_mapping()
+
+        logger.info(f'Fetching scene presets')
+        presets = await self.__get_presets(
+            mappings=scene_mapping)
+
+        # Lookup for preset by ID (minimize looping
+        # in here)
+        lookups = {
+            preset.preset_id: preset
+            for preset in presets
+        }
+
+        ignore_stored_device_state = await self.__feature_client.is_enabled(
+            feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
+
+        set_devices = TaskCollection()
+
+        for mapping in scene_mapping:
+            for device_id in mapping.devices:
+
+                # Get the mapped preset for this device
+                preset = lookups.get(mapping.preset_id)
+
+                # Set up the set device call
+                set_devices.add_task(
+                    self.__wrap_set_device_state(device_id=device_id,
+                                                 preset=preset,
+                                                 region_id=region_id,
+                                                 kasa_token=kasa_token,
+                                                 ignore_stored_device_state=ignore_stored_device_state))
+
+        set_results = await set_devices.run()
+
+        update_results = [
+            result for result in set_results
+            if result is not None
+        ]
+
+        # Fire and forget the update device state events
+        # as we don't want to fail the run scene call in
+        # a case like this
+        logger.info('Firing device state update dispatch events')
+        asyncio.create_task(self.__dispatch_update_device_state_events(
+            update_state_results=update_results
+        ))
+
+        return update_results
+
+    async def __wrap_set_device_state(
+        self,
+        device_id: str,
+        preset: KasaPreset,
+        region_id: str,
+        ignore_stored_device_state: bool = False,
+        kasa_token: str = None
+    ):
+        '''
+        Wrap device state updates so we don't
+        fail the whole scene on a single bad
+        call, log and swallow exception
+        '''
+
+        try:
+            return await self.set_device_state(
+                device_id=device_id,
+                preset=preset,
+                region_id=region_id,
+                ignore_stored_device_state=ignore_stored_device_state,
+                kasa_token=kasa_token)
+        except:
+            logger.exception(
+                f'Failed to set device: {device_id}: {preset.preset_name}')
 
     async def __is_device_update_eligible(
         self,
@@ -57,6 +146,12 @@ class KasaExecutionService:
         logger.info(f'Fetching state for device: {device.device_id}')
         device_state = await self.__device_state_service.get_device_state(
             device_id=device.device_id)
+
+        # Always eligible if we don't have a stored device
+        # state
+        if device_state is None:
+            logger.info(f'No stored state for device: {device.device_id}')
+            return True
 
         logger.info(f'Device state: {device_state.to_dict()}')
 
@@ -77,7 +172,9 @@ class KasaExecutionService:
         self,
         preset: KasaPreset,
         device_id: str,
-        region_id: str = None
+        region_id: str = None,
+        kasa_token: str = None,
+        ignore_stored_device_state: bool = False
     ) -> Union[SetDeviceStateRequest, None]:
 
         logger.info(f'Setting state for device: {device_id}')
@@ -85,13 +182,10 @@ class KasaExecutionService:
         device = await self.__device_service.get_device(
             device_id=device_id)
 
-        use_stored_device_state = await self.__feature_client.is_enabled(
-            feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
-
         # If state compare flag is enabled, compare the current
         # (stored) device state with the target state and don't
         # send the update request if no change occurs
-        if use_stored_device_state:
+        if not ignore_stored_device_state:
             logger.info(f'{device.device_name}: Comparing device state')
 
             update_eligible = await self.__is_device_update_eligible(
@@ -109,7 +203,7 @@ class KasaExecutionService:
         # Skip the update if this device is not in the region
         # if a region is provided
         if (region_id is not None
-                and region_id != device.device_id):
+                and region_id != device.region_id):
 
             logger.info(f'Device excluded by region: {device_id}')
             return
@@ -119,70 +213,38 @@ class KasaExecutionService:
         # Send the device update request to the Kasa client
         await self.__device_service.set_device_state(
             preset=preset,
-            device=device)
+            device=device,
+            kasa_token=kasa_token)
 
         typed_device = preset.to_device_preset(
             device=device)
 
         state_key = typed_device.state_key()
-
-        # state_key = device.state_key()
-        logger.info(f'Device key: {device_id}: {state_key}')
+        logger.info(f'Typed device state key: {state_key}')
 
         # Return the updated device state key
         return SetDeviceStateRequest.create_request(device_id=device_id,
                                                     preset_id=preset.preset_id,
                                                     state_key=state_key)
 
-    async def execute_scene(
-        self,
-        scene: KasaScene,
-        region_id: str = None
-    ):
-        logger.info(f'Run scene: {scene.scene_name}')
-        scene_mapping = scene.get_mapping()
-
-        logger.info(f'Fetching scene presets')
-        presets = await self.__get_presets(
-            mappings=scene_mapping)
-
-        lookups = {
-            preset.preset_id: preset
-            for preset in presets
-        }
-
-        set_devices = TaskCollection()
-
-        for mapping in scene_mapping:
-            for device_id in mapping.devices:
-
-                # Only send state change requests to
-                # devices in requested regions, if a
-                # reion was provie
-                if none_or_whitespace(region_id):
-
-                    preset = lookups.get(mapping.preset_id)
-                    set_devices.add_task(self.set_device_state(
-                        device_id=device_id,
-                        preset=preset,
-                        region_id=region_id))
-
-        update_state_results = await set_devices.run()
-
-        logger.info('Firing device state update dispatch events')
-        asyncio.create_task(self.__dispatch_update_device_state_events(
-            update_state_results=update_state_results
-        ))
-
-        return update_state_results
-
     async def __get_presets(
         self,
         mappings: List[KasaPresetDeviceMapping]
-    ):
+    ) -> List[KasaPreset]:
+
+        # Suppress these, we don't want to fail invoking
+        # the scene entirely for a single missing preset
+        async def wrap_get_preset(
+            preset_id: str
+        ):
+            try:
+                return await self.__preset_service.get_preset(
+                    preset_id=preset_id)
+            except:
+                return
+
         get_presets = TaskCollection(*[
-            self.__preset_service.get_preset(
-                preset_id=mapping.preset_id)
+            wrap_get_preset(mapping.preset_id)
             for mapping in mappings
         ])
 

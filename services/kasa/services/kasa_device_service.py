@@ -18,6 +18,7 @@ from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import DeviceSyncResponse, KasaRequest, KasaResponse, UpdateDeviceRequest
 from services.kasa_client_response_service import KasaClientResponseService
+from services.kasa_preset_service import KasaPresetSevice
 from services.kasa_region_service import KasaRegionService
 
 logger = get_logger(__name__)
@@ -29,6 +30,7 @@ class KasaDeviceService:
         kasa_client: KasaClient,
         device_repository: KasaDeviceRepository,
         region_service: KasaRegionService,
+        preset_service: KasaPresetSevice,
         cache_client: CacheClientAsync,
         client_response_service: KasaClientResponseService
     ):
@@ -37,6 +39,7 @@ class KasaDeviceService:
         self.__region_service = region_service
         self.__cache_client = cache_client
         self.__client_response_service = client_response_service
+        self.__preset_service = preset_service
 
     async def expire_cached_device(
         self,
@@ -135,79 +138,79 @@ class KasaDeviceService:
             KasaDevice(data=device)
             for device in device_entities
         ]
-        
+
         logger.info(f'Known devices fetched: {len(known_devices)}')
-        
+
         # Create a lookup by device IDs
         known_device_lookups = {
-            device.device_id : device
+            device.device_id: device
             for device in known_devices
         }
-                
+
         # Get all Kasa device from Kasa
         # service
         kasa_devices = await self.__kasa_client.get_devices()
         kasa_device_list = [
             KasaDevice.from_kasa_device_json_object(
-                kasa_device=kasa_device) 
+                kasa_device=kasa_device)
             for kasa_device in kasa_devices.device_list
         ]
-        
+
         logger.info(f'Kasa devices fetched: {len(kasa_device_list)}')
-        
+
         # Create a lookup by device IDs
         kasa_device_lookups = {
-            kasa_device.device_id: kasa_device 
+            kasa_device.device_id: kasa_device
             for kasa_device in kasa_device_list
         }
-      
+
         known_ids = list(known_device_lookups.keys())
         kasa_ids = list(kasa_device_lookups.keys())
-        
+
         # Devices w/ a database record but
         # are unknown to Kasa client
         unknown_devices = list(set(known_ids) - set(kasa_ids))
-        
+
         # Devices known to Kasa client but
         # missing a database record
         missing_devices = list(set(kasa_ids) - set(known_ids))
-        
+
         logger.info(f'Unknown devices: {unknown_devices}')
         logger.info(f'Missing devices: {missing_devices}')
-        
+
         created = list()
         for device_id in missing_devices:
             logger.info(f'Syncing missing device: {device_id}')
             device = kasa_device_lookups.get(device_id)
-            
+
             created.append(device)
-            
+
             await self.__device_repository.insert(
                 document=device.to_dict())
             logger.info(f'Synced device: {device.to_dict()}')
-            
+
         if not destructive:
             logger.info(f'{len(created)} devices created')
             return DeviceSyncResponse(
                 destructive=destructive,
                 created=created)
-        
+
         logger.info(f'Removing unknown Kasa devices')
-        
+
         removed = list()
         for device_id in unknown_devices:
             logger.info(f'Removing device: {device_id}')
             device = known_device_lookups.get(device_id)
-            
+
             removed.append(device)
-            
+
             await self.__device_repository.delete(
                 selector=device.get_selector())
-        
+
         return DeviceSyncResponse(
-                destructive=destructive,
-                created=created,
-                removed=removed)
+            destructive=destructive,
+            created=created,
+            removed=removed)
 
     async def get_device_state(
         self,
@@ -221,7 +224,8 @@ class KasaDeviceService:
     async def set_device_state(
         self,
         device: KasaDevice,
-        preset: KasaPreset
+        preset: KasaPreset,
+        kasa_token: str = None
     ) -> Tuple[KasaRequest, KasaResponse]:
         '''
         Set a device state to a given preset
@@ -232,6 +236,9 @@ class KasaDeviceService:
 
         logger.info(
             f'Set device state: {device.device_id}: Preset: {preset.preset_id}')
+
+        if not none_or_whitespace(kasa_token):
+            logger.info(f'Using provided client token: {kasa_token}')
 
         # Fetch the Kasa client request from cache if we have it
         # kasa_request = await self.__cache_client.get_json(
@@ -254,6 +261,7 @@ class KasaDeviceService:
         # Run Kasa client commands
         client_results = await self.__kasa_client.set_device_state(
             kasa_request=kasa_request,
+            kasa_token=kasa_token,
             device_id=device.device_id,
             preset_id=preset.preset_id,
             state_key=state_key)

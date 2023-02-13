@@ -2,9 +2,9 @@ import os
 import unittest
 import uuid
 from abc import abstractmethod
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
-from framework.clients import CacheClientAsync
+from framework.clients.cache_client import CacheClientAsync
 from framework.di.service_provider import ServiceCollection, ServiceProvider
 from framework.logger import get_logger
 from motor.motor_asyncio import AsyncIOMotorClient

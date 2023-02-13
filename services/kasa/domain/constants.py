@@ -49,7 +49,3 @@ class KasaRest:
     LIGHT_STATE = 'light_state'
     DEFAULT_LIGHT_STATE = 'dft_on_state'
     IGNORE_DEFAULT = 'ignore_default'
-
-
-class SemaphoreDefault:
-    KASA_CLIENT = 24
