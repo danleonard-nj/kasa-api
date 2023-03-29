@@ -327,8 +327,8 @@ class KasaDeviceService:
 
         # Expire cached device and device list
 
-        NullArgumentException.if_none_or_whitespace(region_id, 'region_id')
-        NullArgumentException.if_none_or_whitespace(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         # Expire cached device list
         expirations = TaskCollection(

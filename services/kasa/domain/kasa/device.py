@@ -103,5 +103,5 @@ class KasaDevice(Serializable, Selectable):
         Update the device's region
         '''
 
-        ArgumentNullException.if_none_or_whitespace(region_id)
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
         self.region_id = region_id
