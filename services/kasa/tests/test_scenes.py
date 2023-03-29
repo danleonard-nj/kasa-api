@@ -9,6 +9,12 @@ helper = TestHelper()
 
 
 class KasaSceneServiceTests(ApplicationBase):
+    async def asyncSetUp(
+        self
+    ) -> None:
+        self.repo = self.resolve(KasaSceneRepository)
+        self.service = self.resolve(KasaSceneService)
+
     async def insert_test_scene(self, **kwargs):
         repository: KasaSceneRepository = self.resolve(
             KasaSceneRepository)
@@ -78,3 +84,10 @@ class KasaSceneServiceTests(ApplicationBase):
         self.assertEqual(test_scene.scene_category_id,
                          result.scene_category_id)
         self.assertEqual(existing_scene.scene_name, test_scene.scene_name)
+
+    async def test_get_scenes(
+        self
+    ):
+        scenes = await self.service.get_all_scenes()
+
+        self.assertTrue(len(scenes) > 0)

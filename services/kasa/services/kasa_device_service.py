@@ -30,7 +30,6 @@ class KasaDeviceService:
         kasa_client: KasaClient,
         device_repository: KasaDeviceRepository,
         region_service: KasaRegionService,
-        preset_service: KasaPresetSevice,
         cache_client: CacheClientAsync,
         client_response_service: KasaClientResponseService
     ):
@@ -39,7 +38,6 @@ class KasaDeviceService:
         self.__region_service = region_service
         self.__cache_client = cache_client
         self.__client_response_service = client_response_service
-        self.__preset_service = preset_service
 
     async def expire_cached_device(
         self,
@@ -297,15 +295,20 @@ class KasaDeviceService:
         await clear_cache.run()
 
         if none_or_whitespace(update_request.device_id):
-            raise InvalidDeviceRequestException('No device ID was provided')
+            raise InvalidDeviceRequestException('No device ID provided')
 
         device = await self.get_device(
             device_id=update_request.device_id)
 
-        # TODO: Move update logic into device class
-        device.device_name = update_request.device_name
-        device.device_type = update_request.device_type
-        device.region_id = update_request.region_id
+        device.update_device(
+            device_name=update_request.device_name,
+            device_type=update_request.device_type,
+            region_id=update_request.region_id)
+
+        # # TODO: Move update logic into device class
+        # device.device_name = update_request.device_name
+        # device.device_type = update_request.device_type
+        # device.region_id = update_request.region_id
 
         logger.info(f'Updated device: {device.to_dict()}')
 

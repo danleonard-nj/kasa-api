@@ -4,7 +4,6 @@ from typing import Dict, List
 
 from framework.serialization import Serializable
 
-from domain.cache import Cacheable
 from domain.exceptions import NullArgumentException
 
 
@@ -88,7 +87,7 @@ class KasaPresetDeviceMapping:
         self.devices = mapping.get('devices')
 
 
-class KasaScene(Serializable, Cacheable):
+class KasaScene(Serializable):
     def __init__(self, data):
         self.scene_id = data.get('scene_id')
         self.scene_name = data.get('scene_name')

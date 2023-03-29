@@ -1,23 +1,20 @@
-from abc import abstractmethod, abstractproperty
 import uuid
+from abc import abstractmethod
 from datetime import datetime
 from typing import Dict, Union
 
 from framework.exceptions.nulls import ArgumentNullException
 from framework.serialization import Serializable
-from framework.validators.nulls import not_none
 
-from domain.cache import Cacheable
 from domain.common import Selectable
 from domain.constants import KasaDeviceType
-from domain.exceptions import NullArgumentException
 from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
 from domain.kasa.devices.plug import KasaPlug
 from domain.rest import KasaRequest
 
 
-class KasaPreset(Serializable, Cacheable, Selectable):
+class KasaPreset(Serializable, Selectable):
     def __init__(self, data):
         self.preset_id = data.get('preset_id')
         self.preset_name = data.get('preset_name')

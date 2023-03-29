@@ -5,6 +5,8 @@ from domain.kasa.client_response import KasaClientResponse
 
 
 class TestHelper:
+    SCENE_ID = '71a60249-cd4b-4696-ae4c-24a9e0642dd6'
+
     def guid(self):
         return str(uuid.uuid4())
 
@@ -41,6 +43,22 @@ class TestHelper:
 
         return preset | kwargs
 
+    def get_create_preset_request(self, **kwargs):
+        preset = {
+            "definition": {
+                "brightness": 0,
+                "hue": 0,
+                "saturation": 0,
+                "state": False,
+                "temperature": 0
+            },
+            "device_type": "IOT.SMARTBULB",
+            "preset_id": self.guid(),
+            "preset_name": self.guid()
+        }
+
+        return preset | kwargs
+
     def get_test_scene(self, **kwargs):
         scene = {
             "scene_id": self.guid(),
@@ -69,3 +87,11 @@ class TestHelper:
             'created_date': datetime.now(),
             'modified_date': datetime.now()
         })
+
+    def get_mock_device(self, region_id=None):
+        return {
+            'device_id': self.guid(),
+            'device_name': self.guid(),
+            'device_type': 'IOT.SMARTPLUGSWITCH',
+            'region_id': region_id
+        }

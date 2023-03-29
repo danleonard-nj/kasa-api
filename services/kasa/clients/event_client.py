@@ -1,5 +1,4 @@
-from azure.servicebus import ServiceBusMessage
-from azure.servicebus import ServiceBusClient
+from azure.servicebus import ServiceBusClient, ServiceBusMessage
 from framework.configuration.configuration import Configuration
 from framework.logger.providers import get_logger
 
@@ -33,7 +32,7 @@ class EventClient:
         logger.info(f'Getting service bus queue sender')
 
         # TODO: Batch the mesages batches to prevent exceeding max batch size
-        batch = self.sender.create_message_batch()
+        batch = self.__sender.create_message_batch()
         for message in messages:
             logger.info(
                 f'Adding message to batch: {message.message_id}: {message.correlation_id}')

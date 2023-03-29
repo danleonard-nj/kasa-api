@@ -39,6 +39,20 @@ class KasaDevice(Serializable, Selectable):
     ) -> str:
         raise NotImplementedError()
 
+    def update_device(
+        self,
+        device_name: str,
+        device_type: str,
+        region_id: str
+    ):
+        ArgumentNullException.if_none_or_whitespace(device_name, 'device_name')
+        ArgumentNullException.if_none_or_whitespace(device_type, 'device_type')
+
+        self.device_name = device_name
+        self.device_type = device_type
+        self.region_id = region_id
+        return self
+
     @abstractmethod
     def to_kasa_request(
         self,

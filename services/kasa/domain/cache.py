@@ -66,9 +66,3 @@ class CacheExpiration:
     @staticmethod
     def minutes(minutes):
         return minutes
-
-
-class Cacheable:
-    @classmethod
-    def cache_key(cls, object_id):
-        raise NotImplementedError()

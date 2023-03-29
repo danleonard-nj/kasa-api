@@ -5,7 +5,6 @@ from framework.clients.feature_client import FeatureClientAsync
 from framework.concurrency import TaskCollection
 from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
-from framework.validators.nulls import none_or_whitespace
 
 from clients.kasa_client import KasaClient
 from domain.features import FeatureKey
@@ -71,9 +70,11 @@ class KasaExecutionService:
 
         # Lookup for preset by ID (minimize looping
         # in here)
+        logger.info(f'Generating preset key lookup')
         lookups = {
             preset.preset_id: preset
             for preset in presets
+            if preset is not None
         }
 
         ignore_stored_device_state = await self.__feature_client.is_enabled(
@@ -82,6 +83,7 @@ class KasaExecutionService:
         set_devices = TaskCollection()
 
         for mapping in scene_mapping:
+            logger.info(mapping)
             for device_id in mapping.devices:
 
                 # Get the mapped preset for this device
@@ -142,6 +144,7 @@ class KasaExecutionService:
         device: KasaDevice,
         preset: KasaPreset
     ) -> bool:
+
         # Fetch the stored device state if flag is enabled
         logger.info(f'Fetching state for device: {device.device_id}')
         device_state = await self.__device_state_service.get_device_state(
@@ -261,3 +264,6 @@ class KasaExecutionService:
                            if request is not None]
 
         logger.info(f'Sending {len(update_requests)} update event requests')
+
+        await self.__event_service.dispatch_device_state_update_events(
+            update_requests=update_requests)

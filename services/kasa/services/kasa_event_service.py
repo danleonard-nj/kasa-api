@@ -111,3 +111,4 @@ class KasaEventService:
         # Send message batch
         self.__queue_client.send_messages(
             messages=event_messages)
+        logger.info(f'Service bus message batch sent')
