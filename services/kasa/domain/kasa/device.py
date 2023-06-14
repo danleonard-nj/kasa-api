@@ -105,7 +105,8 @@ class KasaDevice(Serializable, Selectable):
         ArgumentNullException.if_none_or_whitespace(device_type, 'device_type')
 
         if device_type not in [KasaDeviceType.KasaLight,
-                               KasaDeviceType.KasaPlug]:
+                               KasaDeviceType.KasaPlug,
+                               KasaDeviceType.KasaCamera]:
             raise InvalidDeviceTypeException(
                 device_type=device_type)
 

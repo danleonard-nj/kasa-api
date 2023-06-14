@@ -38,10 +38,6 @@ class EventClient:
                 f'Adding message to batch: {message.message_id}: {message.correlation_id}')
             batch.add_message(message)
 
-        # if not self.__sender._running:
-        #     logger.info(f'Opening service bus handler connection')
-        #     await self.__sender._open()
-
         self.__sender.send_messages(batch)
 
         logger.info(f'Messages sent successfully')
@@ -55,10 +51,6 @@ class EventClient:
         '''
 
         logger.info(f'Dispatching event message')
-
-        # if not self.__sender._running:
-        #     logger.info(f'Opening service bus hanndler connection')
-        #     await self.__sender._open()
 
         self.__sender.send_messages(
             message=message)

@@ -16,6 +16,7 @@ from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_device_state_service import KasaDeviceStateService
 from services.kasa_event_service import KasaEventService
+from framework.clients.cache_client import CacheClientAsync
 from services.kasa_preset_service import KasaPresetSevice
 
 logger = get_logger(__name__)
@@ -30,11 +31,13 @@ class KasaExecutionService:
         client_response_service: KasaClientResponseService,
         kasa_device_state_service: KasaDeviceStateService,
         event_service: KasaEventService,
-        kasa_client: KasaClient
+        kasa_client: KasaClient,
+        cache_client: CacheClientAsync
     ):
         ArgumentNullException.if_none(device_service, 'device_service')
         ArgumentNullException.if_none(preset_service, 'preset_se                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              rvice')
         ArgumentNullException.if_none(kasa_client, 'kasa_client')
+        ArgumentNullException.if_none(cache_client, 'cache_client')
 
         ArgumentNullException.if_none(
             feature_client, 'feature_client')
@@ -47,6 +50,7 @@ class KasaExecutionService:
         self.__event_service = event_service
         self.__preset_service = preset_service
         self.__kasa_client = kasa_client
+        self.__cache_client = cache_client
 
     async def execute_scene(
         self,
@@ -77,8 +81,8 @@ class KasaExecutionService:
             if preset is not None
         }
 
-        ignore_stored_device_state = await self.__feature_client.is_enabled(
-            feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
+        # ignore_stored_device_state = await self.__feature_client.is_enabled(
+        #     feature_key=FeatureKey.KasaIgnoreClientResponsePreset)
 
         set_devices = TaskCollection()
 
@@ -94,8 +98,7 @@ class KasaExecutionService:
                     self.__wrap_set_device_state(device_id=device_id,
                                                  preset=preset,
                                                  region_id=region_id,
-                                                 kasa_token=kasa_token,
-                                                 ignore_stored_device_state=ignore_stored_device_state))
+                                                 kasa_token=kasa_token))
 
         set_results = await set_devices.run()
 
@@ -139,37 +142,37 @@ class KasaExecutionService:
             logger.exception(
                 f'Failed to set device: {device_id}: {preset.preset_name}')
 
-    async def __is_device_update_eligible(
-        self,
-        device: KasaDevice,
-        preset: KasaPreset
-    ) -> bool:
+    # async def __is_device_update_eligible(
+    #     self,
+    #     device: KasaDevice,
+    #     preset: KasaPreset
+    # ) -> bool:
 
-        # Fetch the stored device state if flag is enabled
-        logger.info(f'Fetching state for device: {device.device_id}')
-        device_state = await self.__device_state_service.get_device_state(
-            device_id=device.device_id)
+    #     # Fetch the stored device state if flag is enabled
+    #     logger.info(f'Fetching state for device: {device.device_id}')
+    #     device_state = await self.__device_state_service.get_device_state(
+    #         device_id=device.device_id)
 
-        # Always eligible if we don't have a stored device
-        # state
-        if device_state is None:
-            logger.info(f'No stored state for device: {device.device_id}')
-            return True
+    #     # Always eligible if we don't have a stored device
+    #     # state
+    #     if device_state is None:
+    #         logger.info(f'No stored state for device: {device.device_id}')
+    #         return True
 
-        logger.info(f'Device state: {device_state.to_dict()}')
+    #     logger.info(f'Device state: {device_state.to_dict()}')
 
-        # Get the target state key (state of the device set
-        # to the target preset)
-        device_preset = preset.to_device_preset(
-            device=device)
+    #     # Get the target state key (state of the device set
+    #     # to the target preset)
+    #     device_preset = preset.to_device_preset(
+    #         device=device)
 
-        # Target device preset state key
-        current_key = device_state.state_key
-        target_key = device_preset.state_key()
+    #     # Target device preset state key
+    #     current_key = device_state.state_key
+    #     target_key = device_preset.state_key()
 
-        logger.info(f'{device.device_name}: {current_key} -> {target_key}')
+    #     logger.info(f'{device.device_name}: {current_key} -> {target_key}')
 
-        return device_state.state_key != target_key,
+    #     return device_state.state_key != target_key,
 
     async def set_device_state(
         self,
@@ -188,20 +191,20 @@ class KasaExecutionService:
         # If state compare flag is enabled, compare the current
         # (stored) device state with the target state and don't
         # send the update request if no change occurs
-        if not ignore_stored_device_state:
-            logger.info(f'{device.device_name}: Comparing device state')
+        # if not ignore_stored_device_state:
+        #     logger.info(f'{device.device_name}: Comparing device state')
 
-            update_eligible = await self.__is_device_update_eligible(
-                device=device,
-                preset=preset)
+        #     update_eligible = await self.__is_device_update_eligible(
+        #         device=device,
+        #         preset=preset)
 
-            logger.info(
-                f'Device: {device.device_name}: Eligible: {update_eligible}')
+        #     logger.info(
+        #         f'Device: {device.device_name}: Eligible: {update_eligible}')
 
-            # Short out if device isn't eligible for update
-            if not update_eligible:
-                logger.info(f'Device: {device.device_name}: Skipping update')
-                return
+        #     # Short out if device isn't eligible for update
+        #     if not update_eligible:
+        #         logger.info(f'Device: {device.device_name}: Skipping update')
+        #         return
 
         # Skip the update if this device is not in the region
         # if a region is provided

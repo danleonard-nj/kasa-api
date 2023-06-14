@@ -4,9 +4,15 @@ from framework.configuration import Configuration
 
 
 class AdRole:
-    READ = 'Kasa.Read'
-    WRITE = 'Kasa.Write'
-    EXECUTE = 'Kasa.Execute'
+    Read = 'Kasa.Read'
+    Write = 'Kasa.Write'
+    Execute = 'Kasa.Execute'
+
+
+class AuthPolicy:
+    Read = 'read'
+    Write = 'write'
+    Execute = 'execute'
 
 
 def contains_role(
@@ -36,14 +42,14 @@ def configure_azure_ad(container):
         name='read',
         func=lambda t: contains_role(
             token=t,
-            role=AdRole.READ
+            role=AdRole.Read
         ))
 
     azure_ad.add_authorization_policy(
         name='write',
         func=lambda t: contains_role(
             token=t,
-            role=AdRole.WRITE
+            role=AdRole.Write
         ))
 
     azure_ad.add_authorization_policy(
@@ -54,7 +60,7 @@ def configure_azure_ad(container):
         name='execute',
         func=lambda t: contains_role(
             token=t,
-            role=AdRole.EXECUTE
+            role=AdRole.Execute
         ))
 
     return azure_ad

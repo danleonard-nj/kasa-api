@@ -1,11 +1,8 @@
-import asyncio
 from typing import List, Union
 
-from framework.clients.cache_client import CacheClientAsync
 from framework.logger.providers import get_logger
 
 from data.repositories.kasa_scene_repository import KasaSceneRepository
-from domain.cache import CacheExpiration, CacheKey
 from domain.exceptions import (NullArgumentException, SceneExistsException,
                                SceneNotFoundException)
 from domain.kasa.scene import KasaScene
@@ -20,44 +17,10 @@ class KasaSceneService:
     def __init__(
         self,
         scene_repository: KasaSceneRepository,
-        cache_client: CacheClientAsync,
         execution_service: KasaExecutionService
     ):
         self.__scene_repository = scene_repository
-        self.__cache_client = cache_client
         self.__execution_service = execution_service
-
-    async def __expire_cached_scene(
-        self,
-        scene_id: str
-    ) -> None:
-        '''
-        Expire the scene from cache
-        '''
-
-        NullArgumentException.if_none_or_whitespace(
-            scene_id, 'scene_id')
-
-        logger.info(f'Expire cached scene: {scene_id}')
-
-        await self.__cache_client.delete_key(
-            key=CacheKey.scene_key(
-                scene_id=scene_id
-            ))
-
-    async def __expire_cached_scene_list(
-        self
-    ) -> None:
-        '''
-        Expire the scene list from cache
-        '''
-
-        cache_key = CacheKey.scene_list()
-        logger.info(f'Expire cached scene list')
-        logger.info(f'Cache key: {cache_key}')
-
-        await self.__cache_client.delete_key(
-            key=cache_key)
 
     async def create_scene(
         self,
@@ -142,12 +105,6 @@ class KasaSceneService:
             'scene_id': scene_id
         })
 
-        # Expire the cached scene
-        await asyncio.gather(
-            self.__expire_cached_scene_list(),
-            self.__expire_cached_scene(
-                scene_id=scene_id))
-
         return {
             'result': delete_result.deleted_count
         }
@@ -177,44 +134,36 @@ class KasaSceneService:
         existing_scene = KasaScene(
             data=scene)
 
-        updated_scene = KasaScene(
-            data=existing_scene.to_dict() | update_request.to_dict())
+        data = existing_scene.to_dict() | update_request.to_dict()
+        updated_scene = KasaScene(data=data)
 
-        logger.info(
-            f'Updating scene: {existing_scene.scene_id}')
+        logger.info(f'Updating scene: {existing_scene.scene_id}')
 
         update_result = await self.__scene_repository.update(
             selector=updated_scene.get_selector(),
             values=updated_scene.to_dict())
 
-        # Expire the cached scene and scene list
-        await asyncio.gather(
-            self.__expire_cached_scene_list(),
-            self.__expire_cached_scene(
-                scene_id=existing_scene.scene_id))
-
-        logger.info(
-            f'Updated count: {update_result.modified_count}')
+        logger.info(f'Updated count: {update_result.modified_count}')
 
         return updated_scene
 
-    async def get_scenes_by_category(
-        self,
-        category_id: str
-    ):
-        NullArgumentException.if_none_or_whitespace(
-            category_id, 'category_id')
+    # async def get_scenes_by_category(
+    #     self,
+    #     category_id: str
+    # ):
+    #     NullArgumentException.if_none_or_whitespace(
+    #         category_id, 'category_id')
 
-        logger.info(f'Get scenes by category: {category_id}')
+    #     logger.info(f'Get scenes by category: {category_id}')
 
-        entities = await self.__scene_repository.query({
-            'scene_category_id': category_id
-        })
+    #     entities = await self.__scene_repository.query({
+    #         'scene_category_id': category_id
+    #     })
 
-        scenes = [KasaScene(data=entity)
-                  for entity in entities]
+    #     scenes = [KasaScene(data=entity)
+    #               for entity in entities]
 
-        return scenes
+    #     return scenes
 
     async def get_all_scenes(
         self,

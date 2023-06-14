@@ -1,14 +1,12 @@
-from utils.constant_base import ConstantBase
-
-
 class KasaConstant:
     PASSTHROUGH = 'passthrough'
     LOGIN = 'login'
 
 
-class KasaDeviceType(ConstantBase):
+class KasaDeviceType:
     KasaPlug = 'IOT.SMARTPLUGSWITCH'
     KasaLight = 'IOT.SMARTBULB'
+    KasaCamera = 'IOT.IPCAMERA'
 
 
 class KasaRequestMethod:

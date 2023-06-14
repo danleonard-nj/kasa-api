@@ -23,13 +23,6 @@ class KasaRegionService:
     async def get_regions(
         self,
     ) -> List[KasaRegion]:
-        '''
-        Get all device regions
-
-        Returns:
-            List[KasaRegion]: list of
-            device region
-        '''
 
         logger.info(f'Fetching all regions')
         regions = await self.__repository.get_all()
@@ -45,16 +38,6 @@ class KasaRegionService:
         self,
         region_id: str
     ) -> KasaRegion:
-        '''
-        Get a device region
-
-        Args:
-            region_id (str): region ID
-
-        Returns:
-            KasaRegion: Kasa region if
-            it exists
-        '''
 
         logger.info(f'Get region: {region_id}')
         if none_or_whitespace(region_id):
@@ -75,12 +58,6 @@ class KasaRegionService:
         self,
         region_id: str
     ):
-        '''
-        Delete a device region
-
-        Args:
-            region_id (str): region ID
-        '''
 
         logger.info(f'Attempting delete for region: {region_id}')
         existing = await self.__repository.get({
@@ -101,16 +78,6 @@ class KasaRegionService:
         self,
         create_request: CreateRegionRequest
     ) -> KasaRegion:
-        '''
-        Create a new device region
-
-        Args:
-            create_request (CreateRegionRequest):
-            create region request model
-
-        Returns:
-            KasaRegion: created region
-        '''
 
         logger.info(f'Create regions: {create_request.region_name}')
         existing = await self.__repository.get({

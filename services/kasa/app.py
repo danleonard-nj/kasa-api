@@ -2,10 +2,8 @@ from dotenv import load_dotenv
 from framework.abstractions.abstract_request import RequestContextProvider
 from framework.di.static_provider import InternalProvider
 from framework.serialization.serializer import configure_serializer
-# from framework.swagger.quart.swagger import Swagger
 from quart import Quart
 
-from routes.cache import cache_bp
 from routes.devices import devices_bp
 from routes.events import events_bp
 from routes.health import health_bp
@@ -28,7 +26,6 @@ app.register_blueprint(scene_bp)
 app.register_blueprint(preset_bp)
 app.register_blueprint(region_bp)
 app.register_blueprint(events_bp)
-app.register_blueprint(cache_bp)
 
 
 @app.before_serving

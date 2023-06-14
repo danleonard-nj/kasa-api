@@ -1,4 +1,3 @@
-from framework.caching import MemoryCache
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
 from framework.exceptions.nulls import ArgumentNullException

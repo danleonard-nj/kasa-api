@@ -1,14 +1,15 @@
 from framework.logger.providers import get_logger
+from framework.rest.blueprints.meta import MetaBlueprint
 from quart import request
 
+from domain.kasa.auth import AuthPolicy
 from providers.kasa_device_provider import KasaDeviceProvider
-from framework.rest.blueprints.meta import MetaBlueprint
 
 logger = get_logger(__name__)
 devices_bp = MetaBlueprint('devices_bp', __name__)
 
 
-@devices_bp.configure('/api/device', methods=['GET'], auth_scheme='read')
+@devices_bp.configure('/api/device', methods=['GET'], auth_scheme=AuthPolicy.Read)
 async def get_devices(container):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
@@ -16,7 +17,7 @@ async def get_devices(container):
     return await kasa_device_provider.get_all_devices()
 
 
-@devices_bp.configure('/api/device', methods=['PUT'], auth_scheme='write')
+@devices_bp.configure('/api/device', methods=['PUT'], auth_scheme=AuthPolicy.Write)
 async def update_device(container):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
@@ -27,7 +28,7 @@ async def update_device(container):
         body=body)
 
 
-@devices_bp.configure('/api/device/<device_id>', methods=['GET'], auth_scheme='read')
+@devices_bp.configure('/api/device/<device_id>', methods=['GET'], auth_scheme=AuthPolicy.Read)
 async def get_device(container, device_id):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
@@ -36,7 +37,7 @@ async def get_device(container, device_id):
         device_id=device_id)
 
 
-@devices_bp.configure('/api/device/state/<device_id>', methods=['GET'], auth_scheme='read')
+@devices_bp.configure('/api/device/state/<device_id>', methods=['GET'], auth_scheme=AuthPolicy.Read)
 async def get_device_state(container, device_id):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
@@ -45,18 +46,18 @@ async def get_device_state(container, device_id):
         device_id=device_id)
 
 
-@devices_bp.configure('/api/device/sync', methods=['POST'], auth_scheme='write')
+@devices_bp.configure('/api/device/sync', methods=['POST'], auth_scheme=AuthPolicy.Write)
 async def sync_devices(container):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
-    
+
     destructive = request.args.get('destructive')
 
     return await kasa_device_provider.sync_devices(
         destructive=destructive)
 
 
-@devices_bp.configure('/api/device/<device_id>/preset/<preset_id>', methods=['POST'], auth_scheme='write')
+@devices_bp.configure('/api/device/<device_id>/preset/<preset_id>', methods=['POST'], auth_scheme=AuthPolicy.Write)
 async def set_device_preset(container, device_id: str, preset_id: str):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
@@ -66,7 +67,7 @@ async def set_device_preset(container, device_id: str, preset_id: str):
         preset_id=preset_id)
 
 
-@devices_bp.configure('/api/device/<device_id>/region/<region_id>', methods=['POST'], auth_scheme='write')
+@devices_bp.configure('/api/device/<device_id>/region/<region_id>', methods=['POST'], auth_scheme=AuthPolicy.Write)
 async def set_device_region(container, device_id: str, region_id: str):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)
@@ -76,7 +77,7 @@ async def set_device_region(container, device_id: str, region_id: str):
         region_id=region_id)
 
 
-@devices_bp.configure('/api/device/<device_id>/response', methods=['GET'], auth_scheme='read')
+@devices_bp.configure('/api/device/<device_id>/response', methods=['GET'], auth_scheme=AuthPolicy.Read)
 async def get_device_client_response(container, device_id: str):
     kasa_device_provider: KasaDeviceProvider = container.resolve(
         KasaDeviceProvider)

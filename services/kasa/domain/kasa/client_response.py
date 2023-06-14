@@ -20,8 +20,6 @@ class KasaClientResponse(Serializable):
         self.preset_id = data.get('preset_id')
         self.client_response = data.get('client_response')
         self.state_key = data.get('state_key')
-        self.sync_status = data.get('sync_status')
-        self.sync_reason = data.get('sync_reason')
         self.created_date = data.get('created_date')
         self.modified_date = data.get('modified_date')
 

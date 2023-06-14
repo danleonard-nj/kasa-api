@@ -19,27 +19,6 @@ class KasaClientResponseService:
     ):
         self.__client_response_repository = client_response_repository
 
-    def __handle_sync_status_update(
-        self,
-        model: KasaClientResponse
-    ) -> KasaClientResponse:
-
-        # Update the sync status to out of sync if the client
-        # returns an error status (usually device is not live
-        # or reachable i.e. device was turned off manually)
-        if model.is_error:
-            model.update_sync_status(
-                sync_status=False,
-                sync_reason=SyncStatusReason.ClientResponseError)
-
-        # Sync status true if client returns success
-        else:
-            model.update_sync_status(
-                sync_status=True,
-                sync_reason=SyncStatusReason.ClientResponseSuccess)
-
-        return model
-
     async def update_client_response(
         self,
         request: UpdateClientResponseRequest
@@ -73,10 +52,6 @@ class KasaClientResponseService:
         # Update the client response
         model.update_client_response(
             request=request)
-
-        # Set the device sync status
-        model = self.__handle_sync_status_update(
-            model=model)
 
         # Update the record
         result = await self.__client_response_repository.update(
