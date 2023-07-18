@@ -86,7 +86,7 @@ class KasaPresetSevice:
 
         await self.__cache_client.set_json(
             value=kasa_preset.to_dict(),
-            ttl=CacheExpiration.days(7),
+            ttl=CacheExpiration.days(1),
             key=CacheKey.preset_key(
                 preset_id=kasa_preset.preset_id))
 
@@ -178,7 +178,7 @@ class KasaPresetSevice:
                 preset_id=preset_id)
 
         await self.__cache_client.set_json(
-            ttl=CacheExpiration.days(7),
+            ttl=CacheExpiration.days(1),
             value=entity,
             key=CacheKey.preset_key(
                 preset_id=preset_id
@@ -243,7 +243,7 @@ class KasaPresetSevice:
 
             await self.__cache_client.set_json(
                 key=CacheKey.preset_list(),
-                ttl=CacheExpiration.days(7),
+                ttl=CacheExpiration.days(1),
                 value=presets)
 
         # Create preset models from stored presets

@@ -90,7 +90,7 @@ class KasaDeviceService:
                 key=CacheKey.device_key(
                     device_id=device_id),
                 value=device,
-                ttl=CacheExpiration.days(7))
+                ttl=CacheExpiration.days(1))
 
         if device is None:
             raise DeviceNotFoundException(
@@ -117,7 +117,7 @@ class KasaDeviceService:
 
             await self.__cache_client.set_json(
                 key=CacheKey.device_list(),
-                ttl=CacheExpiration.days(7),
+                ttl=CacheExpiration.days(1),
                 value=device_entities)
 
         logger.info(f'Fetched {len(device_entities)} devices')
