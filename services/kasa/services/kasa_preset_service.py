@@ -5,7 +5,7 @@ from typing import List
 from framework.logger.providers import get_logger
 
 from data.repositories.kasa_preset_repository import KasaPresetRepository
-from domain.cache import CacheKey
+from domain.cache import CacheExpiration, CacheKey
 from domain.exceptions import (NullArgumentException, PresetExistsException,
                                PresetNotFoundException)
 from domain.kasa.preset import KasaPreset
@@ -57,6 +57,12 @@ class KasaPresetSevice:
         result = await self.__preset_repository.insert(
             document=kasa_preset.to_dict())
 
+        cache_key = CacheKey.device_list()
+        logger.info(f'Device list cache key: {cache_key}')
+
+        asyncio.create_task(
+            self.__cache_client.delete_key(cache_key))
+
         logger.info(f'Inserted record: {str(result.inserted_id)}')
         return kasa_preset
 
@@ -101,6 +107,14 @@ class KasaPresetSevice:
             selector=kasa_preset.get_selector(),
             values=kasa_preset.to_dict())
 
+        cache_key = CacheKey.preset_key(
+            preset_id=kasa_preset.preset_id)
+        logger.info(f'Preset cache key: {cache_key}')
+
+        # Delete the cached preset if it exists
+        asyncio.create_task(
+            self.__cache_client.delete_key(cache_key))
+
         logger.info(f'Modified count: {update_result.modified_count}')
 
         return kasa_preset
@@ -140,7 +154,8 @@ class KasaPresetSevice:
         asyncio.create_task(
             self.__cache_client.set_json(
                 key=cache_key,
-                value=entity))
+                value=entity,
+                ttl=CacheExpiration.hours(24)))
 
         kasa_preset = KasaPreset(
             data=entity)
@@ -174,6 +189,13 @@ class KasaPresetSevice:
         delete_result = await self.__preset_repository.delete({
             'preset_id': kasa_preset.preset_id
         })
+
+        cache_key = CacheKey.preset_list()
+        logger.info(f'Preset list cache key: {cache_key}')
+
+        # Delete the cached device list if it exists
+        asyncio.create_task(
+            self.__cache_client.delete_key(cache_key))
 
         return DeleteResponse(
             delete_result=delete_result)

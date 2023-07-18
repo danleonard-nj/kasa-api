@@ -9,7 +9,7 @@ from framework.validators.nulls import none_or_whitespace
 
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
-from domain.cache import CacheKey
+from domain.cache import CacheExpiration, CacheKey
 from domain.exceptions import (DeviceNotFoundException,
                                InvalidDeviceRequestException,
                                NullArgumentException, RegionNotFoundException)
@@ -97,6 +97,7 @@ class KasaDeviceService:
         # Cache the device asynchronously
         asyncio.create_task(
             self.__cache_client.set_json(
+                ttl=CacheExpiration.hours(24),
                 key=CacheKey.device_key(
                     device_id=device_id),
                 value=device))
@@ -204,6 +205,10 @@ class KasaDeviceService:
             await self.__device_repository.delete(
                 selector=device.get_selector())
 
+        asyncio.create_task(
+            self.__cache_client.delete_key(
+                key=CacheKey.device_list()))
+
         return DeviceSyncResponse(
             destructive=destructive,
             created=created,
@@ -306,16 +311,18 @@ class KasaDeviceService:
             device_type=update_request.device_type,
             region_id=update_request.region_id)
 
-        # # TODO: Move update logic into device class
-        # device.device_name = update_request.device_name
-        # device.device_type = update_request.device_type
-        # device.region_id = update_request.region_id
-
         logger.info(f'Updated device: {device.to_dict()}')
 
         await self.__device_repository.update(
             selector=device.get_selector(),
             values=device.to_dict())
+
+        cache_key = CacheKey.device_key(
+            device_id=device.device_id)
+        logger.info(f'Expire cached device: {cache_key}')
+
+        asyncio.create_task(
+            self.__cache_client.delete_key(cache_key))
 
         return device
 
@@ -374,6 +381,13 @@ class KasaDeviceService:
         update_result = await self.__device_repository.replace(
             selector=device.get_selector(),
             document=device.to_dict())
+
+        cache_key = CacheKey.device_key(
+            device_id=device.device_id)
+        logger.info(f'Expire cached device: {cache_key}')
+
+        asyncio.create_task(
+            self.__cache_client.delete_key(cache_key))
 
         logger.info(f'Update result: {update_result.modified_count}')
         return device
