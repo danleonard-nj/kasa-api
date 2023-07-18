@@ -129,7 +129,7 @@ class KasaClient:
         await self.__cache_client.set_cache(
             key=CacheKey.kasa_token(),
             value=token_response.token,
-            ttl=60 * 4)
+            ttl=60 * 6)
 
         return token_response.token
 
