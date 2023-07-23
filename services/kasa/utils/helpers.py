@@ -1,4 +1,5 @@
 import json
+import time
 from framework.crypto.hashing import sha256
 
 
@@ -27,3 +28,9 @@ def generate_key(items):
             default=str
         )
     )
+
+
+class DateTimeUtil:
+    @staticmethod
+    def timestamp() -> int:
+        return int(time.time())

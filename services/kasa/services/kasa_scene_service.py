@@ -9,6 +9,7 @@ from domain.kasa.scene import KasaScene
 from domain.rest import (CreateSceneRequest, MappedSceneRequest,
                          RunSceneRequest, UpdateSceneRequest)
 from services.kasa_execution_service import KasaExecutionService
+from utils.helpers import DateTimeUtil
 
 logger = get_logger(__name__)
 
@@ -73,7 +74,7 @@ class KasaSceneService:
             raise SceneNotFoundException(
                 scene_id=scene_id)
 
-        kasa_scene = KasaScene(
+        kasa_scene = KasaScene.from_dict(
             data=scene)
 
         return kasa_scene
@@ -119,51 +120,42 @@ class KasaSceneService:
 
         NullArgumentException.if_none(update_request, 'update_request')
 
-        logger.info(
-            f'Scene: {update_request.scene_id}: Updating Kasa scene: {update_request.scene_id}')
+        logger.info(f'Fetching scene from db: {update_request.scene_id}')
 
         # Verify the scene exists
-        scene = await self.__scene_repository.get({
+        entity = await self.__scene_repository.get({
             'scene_id': update_request.scene_id
         })
 
-        if scene is None:
+        # Scene not found
+        if entity is None:
             raise SceneNotFoundException(
                 scene_id=update_request.scene_id)
 
-        existing_scene = KasaScene(
-            data=scene)
+        existing_scene = KasaScene.from_dict(
+            data=entity)
 
-        data = existing_scene.to_dict() | update_request.to_dict()
-        updated_scene = KasaScene(data=data)
+        # Merge the existing scene with the update request
+        # TODO: Move some/all of this logic to domain object
+        data = (
+            existing_scene.to_dict() |
+            update_request.to_dict() | {
+                'modified_date': DateTimeUtil.timestamp()
+            }
+        )
+
+        updated_scene = KasaScene.from_dict(data=data)
 
         logger.info(f'Updating scene: {existing_scene.scene_id}')
 
-        update_result = await self.__scene_repository.update(
+        # Replace the scene document in the db
+        update_result = await self.__scene_repository.replace(
             selector=updated_scene.get_selector(),
-            values=updated_scene.to_dict())
+            document=updated_scene.to_dict())
 
         logger.info(f'Updated count: {update_result.modified_count}')
 
         return updated_scene
-
-    # async def get_scenes_by_category(
-    #     self,
-    #     category_id: str
-    # ):
-    #     NullArgumentException.if_none_or_whitespace(
-    #         category_id, 'category_id')
-
-    #     logger.info(f'Get scenes by category: {category_id}')
-
-    #     entities = await self.__scene_repository.query({
-    #         'scene_category_id': category_id
-    #     })
-
-    #     scenes = [KasaScene(data=entity)
-    #               for entity in entities]
-
-    #     return scenes
 
     async def get_all_scenes(
         self,
@@ -174,11 +166,11 @@ class KasaSceneService:
 
         logger.info('Get all scenes')
 
-        scenes = await self.__scene_repository.get_all()
+        entities = await self.__scene_repository.get_all()
 
         kasa_scenes = [
-            KasaScene(data=entity)
-            for entity in scenes
+            KasaScene.from_dict(data=entity)
+            for entity in entities
         ]
 
         return kasa_scenes
@@ -198,7 +190,7 @@ class KasaSceneService:
         if not any(entities):
             return
 
-        scenes = [KasaScene(data=entity)
+        scenes = [KasaScene.from_dict(data=entity)
                   for entity in entities]
 
         return scenes

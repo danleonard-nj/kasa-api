@@ -5,6 +5,7 @@ from typing import Dict, List
 from framework.serialization import Serializable
 
 from domain.exceptions import NullArgumentException
+from utils.helpers import DateTimeUtil
 
 
 class KasaDevicePreset:
@@ -88,18 +89,40 @@ class KasaPresetDeviceMapping:
 
 
 class KasaScene(Serializable):
-    def __init__(self, data):
-        self.scene_id = data.get('scene_id')
-        self.scene_name = data.get('scene_name')
-        self.scene_category_id = data.get('scene_category_id')
-        self.mapping = data.get('mapping')
-        self.flow = data.get('flow')
+    def __init__(
+        self,
+        scene_id: str,
+        scene_name: str,
+        scene_category_id: str,
+        mapping,
+        flow,
+        modified_date: int,
+        created_date: int
+    ):
+        self.scene_id = scene_id
+        self.scene_name = scene_name
+        self.scene_category_id = scene_category_id
+        self.mapping = mapping
+        self.flow = flow
+        self.modified_date = modified_date
+        self.created_date = created_date
 
         # Other values are nullable when the
         # scene is first initialized
 
         NullArgumentException.if_none_or_whitespace(
             self.scene_name, 'scene_name')
+
+    @staticmethod
+    def from_dict(data):
+        return KasaScene(
+            scene_id=data.get('scene_id'),
+            scene_name=data.get('scene_name'),
+            scene_category_id=data.get('scene_category_id'),
+            mapping=data.get('mapping'),
+            flow=data.get('flow'),
+            modified_date=data.get('modified_date'),
+            created_date=data.get('created_date'))
 
     def get_selector(
         self
@@ -128,9 +151,10 @@ class KasaScene(Serializable):
         data
     ) -> 'KasaScene':
 
-        return KasaScene(
+        return KasaScene.from_dict(
             data=data | {
-                'scene_id': str(uuid.uuid4())
+                'scene_id': str(uuid.uuid4()),
+                'created_date': DateTimeUtil.timestamp()
             })
 
 
