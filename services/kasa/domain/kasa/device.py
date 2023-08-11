@@ -7,11 +7,14 @@ from framework.serialization import Serializable
 from domain.common import Selectable
 from domain.constants import KasaDeviceType
 from domain.exceptions import InvalidDeviceTypeException
-from domain.rest import KasaRequestBase
+from domain.rest import KasaApiRequest
 
 
 class KasaDevice(Serializable, Selectable):
-    def __init__(self, data):
+    def __init__(
+        self,
+        data: Dict
+    ):
         self.device_id = data.get('device_id')
         self.device_name = data.get('device_name')
         self.device_type = data.get('device_type')
@@ -67,7 +70,7 @@ class KasaDevice(Serializable, Selectable):
 
         # Build a device request wi/ specific device
         # type parameters passed in
-        kasa_request = KasaRequestBase(
+        kasa_request = KasaApiRequest(
             device_id=self.device_id,
             request_data=parameters)
 

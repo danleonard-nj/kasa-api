@@ -58,10 +58,7 @@ class KasaClient:
     async def set_device_state(
         self,
         kasa_request: dict,
-        kasa_token: str = None,
-        preset_id=None,
-        device_id=None,
-        state_key=None
+        kasa_token: str = None
     ) -> KasaResponse:
         '''
         Set the Kasa device state
@@ -73,13 +70,6 @@ class KasaClient:
         response = await self.__send_request(
             json=kasa_request,
             kasa_token=kasa_token)
-
-        # if device_id is not None:
-        #     await self.__event_service.send_client_response_event(
-        #         device_id=device_id,
-        #         preset_id=preset_id,
-        #         client_response=response.data,
-        #         state_key=state_key)
 
         return response
 

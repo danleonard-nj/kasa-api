@@ -19,7 +19,7 @@ class ApiRequest:
                 raise RequiredFieldException(field)
 
 
-class KasaRequestBase(Serializable):
+class KasaApiRequest(Serializable):
     def __init__(
         self,
         device_id: str,
@@ -273,7 +273,7 @@ class KasaTokenResponse(KasaResponse):
         self.token = token
 
 
-class GetKasaDeviceStateRequest(KasaRequestBase):
+class GetKasaDeviceStateRequest(KasaApiRequest):
     def __init__(self, device_id):
         super().__init__(
             device_id,

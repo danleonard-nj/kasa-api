@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration import Configuration
@@ -11,6 +12,11 @@ from domain.events import SetDeviceStateEvent, StoreKasaClientResponseEvent
 from domain.rest import SetDeviceStateRequest
 
 logger = get_logger(__name__)
+
+
+class KasaClientResponseEventException(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
 
 class KasaEventService:
@@ -47,16 +53,17 @@ class KasaEventService:
         token = await self.__identity_client.get_token(
             client_name='kasa-api')
 
+        # If we don't get the token back
         if none_or_whitespace(token):
-            raise Exception('Event token cannot be null')
+            raise KasaClientResponseEventException(
+                'Failed to fetch event token for client response event')
+
+        # Cache the fetched token
+        asyncio.create_task(self.__cache_client.set_cache(
+            key=CacheKey.event_token(),
+            value=token))
 
         return token
-
-    async def refresh_token(
-        self
-    ):
-        logger.info(f'Refreshing token')
-        await self.__get_client_token()
 
     async def send_client_response_event(
         self,
@@ -71,6 +78,9 @@ class KasaEventService:
         preset for a given device
         '''
 
+        logger.info(
+            f'{preset_id}: {device_id}: Dispatching client response event')
+
         token = await self.__get_client_token()
 
         event = StoreKasaClientResponseEvent(
@@ -81,34 +91,35 @@ class KasaEventService:
             base_url=self.__base_url,
             token=token)
 
-        logger.info(
-            f'{preset_id}: {device_id}: Client response event dispatched')
+        logger.info(f'Client response event: {event.to_dict()}')
 
         self.__queue_client.send_message(
             message=event.to_service_bus_message())
 
         logger.info(f'{preset_id}: {device_id}: Client response event sent')
 
-    async def dispatch_device_state_update_events(
-        self,
-        update_requests: List[SetDeviceStateRequest]
-    ):
-        logger.info(f'Dispatching update state requests')
+    # async def dispatch_device_state_update_events(
+    #     self,
+    #     update_requests: List[SetDeviceStateRequest]
+    # ):
+    #     logger.info(f'Dispatching update state requests')
 
-        token = await self.__get_client_token()
+    #     token = await self.__get_client_token()
 
-        # Create device state update events
-        update_events = [SetDeviceStateEvent(
-            body=update_request,
-            base_url=self.__base_url,
-            token=token)
-            for update_request in update_requests]
+    #     # Create device state update events
+    #     update_events = [
+    #         SetDeviceStateEvent(
+    #             body=update_request,
+    #             base_url=self.__base_url,
+    #             token=token)
+    #         for update_request in update_requests
+    #     ]
 
-        # Create service bus messages from event messages
-        event_messages = [update_event.to_service_bus_message()
-                          for update_event in update_events]
+    #     # Create service bus messages from event messages
+    #     event_messages = [update_event.to_service_bus_message()
+    #                       for update_event in update_events]
 
-        # Send message batch
-        self.__queue_client.send_messages(
-            messages=event_messages)
-        logger.info(f'Service bus message batch sent')
+    #     # Send message batch
+    #     self.__queue_client.send_messages(
+    #         messages=event_messages)
+    #     logger.info(f'Service bus message batch sent')

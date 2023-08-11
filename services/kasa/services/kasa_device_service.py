@@ -245,8 +245,10 @@ class KasaDeviceService:
         typed_device = preset.to_device_preset(
             device=device)
 
-        kasa_request = preset.to_request(
-            device=typed_device).get_request_body()
+        kasa_request = (
+            preset
+            .to_request(device=typed_device)
+            .get_request_body())
 
         logger.info(f'Sending Kasa device state request')
 
@@ -256,10 +258,7 @@ class KasaDeviceService:
         # Run Kasa client commands
         client_results = await self.__kasa_client.set_device_state(
             kasa_request=kasa_request,
-            kasa_token=kasa_token,
-            device_id=device.device_id,
-            preset_id=preset.preset_id,
-            state_key=state_key)
+            kasa_token=kasa_token)
 
         # TODO: Clear this up, do these cases actually happen?
         if isinstance(client_results, list):
@@ -382,13 +381,6 @@ class KasaDeviceService:
             selector=device.get_selector(),
             document=device.to_dict())
 
-        cache_key = CacheKey.device_key(
-            device_id=device.device_id)
-        logger.info(f'Expire cached device: {cache_key}')
-
-        asyncio.create_task(
-            self.__cache_client.delete_key(cache_key))
-
         logger.info(f'Update result: {update_result.modified_count}')
         return device
 
@@ -432,14 +424,3 @@ class KasaDeviceService:
                    for entity in entities]
 
         return devices
-
-    async def __create_kasa_device(
-        self,
-        client_device: Dict
-    ) -> None:
-
-        kasa_device = KasaDevice.from_kasa_device_json_object(
-            kasa_device=client_device)
-
-        await self.__device_repository.insert(
-            document=kasa_device.to_dict())

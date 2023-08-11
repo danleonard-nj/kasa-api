@@ -15,7 +15,6 @@ class MongoConstants:
     KasaClientResponseCollection = 'KasaClientResponseCollection'
     KasaRegionCollectionName = 'KasaRegion'
     KasaSceneCategoryCollectionName = 'KasaSceneCategory'
-    KasaDeviceStateCategory = 'KasaDeviceState'
 
 
 class KasaActionType(enum.Enum):

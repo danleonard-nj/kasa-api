@@ -7,7 +7,6 @@ from data.repositories.kasa_client_response_repository import \
 from domain.exceptions import NullArgumentException
 from domain.kasa.client_response import KasaClientResponse
 from domain.rest import UpdateClientResponseRequest
-from domain.sync import SyncStatusReason
 
 logger = get_logger(__name__)
 
@@ -80,9 +79,6 @@ class KasaClientResponseService:
             client_response=client_response,
             state_key=state_key)
 
-        model = self.__handle_sync_status_update(
-            model=model)
-
         await self.__client_response_repository.insert(
             model.to_dict())
 
@@ -96,6 +92,7 @@ class KasaClientResponseService:
         Get the client response record for a given device
         '''
 
+        logger.info(f'Get client response for device: {device_id}')
         entity = await self.__client_response_repository.get({
             'device_id': device_id
         })
