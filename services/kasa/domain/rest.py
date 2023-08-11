@@ -9,7 +9,7 @@ from domain.constants import KasaRequestMethod, KasaRest
 from domain.exceptions import RequiredFieldException
 
 
-class ApiRequest:
+class Validatable:
     def required_fields(self):
         return []
 
@@ -101,7 +101,7 @@ class KasaRequest(Serializable):
         return json.dumps(self.json, indent=True)
 
 
-class CreateSceneRequest(ApiRequest, Serializable):
+class CreateSceneRequest(Validatable, Serializable):
     def __init__(self, data):
         self.scene_name = data.get('scene_name')
         self.mapping = data.get('mapping')
@@ -115,7 +115,7 @@ class CreateSceneRequest(ApiRequest, Serializable):
                 'flow']
 
 
-class UpdateSceneRequest(ApiRequest, Serializable):
+class UpdateSceneRequest(Validatable, Serializable):
     def __init__(self, data):
         self.scene_id = data.get('scene_id')
         self.scene_name = data.get('scene_name')
@@ -131,18 +131,20 @@ class UpdateSceneRequest(ApiRequest, Serializable):
                 'flow']
 
 
-class GetPresetRequest(ApiRequest, Serializable):
+class GetPresetRequest(Validatable, Serializable):
     def __init__(self, data):
         self.preset_id = data.get('preset_id')
         self.device_id = data.get('device_id')
         self.validate()
 
-    def required_fields(self):
+    def required_fields(
+        self
+    ):
         return ['preset_id',
                 'device_id']
 
 
-class RunSceneRequest(ApiRequest, Serializable):
+class RunSceneRequest(Validatable, Serializable):
     '''
     Request for triggering a scene
 
@@ -153,38 +155,42 @@ class RunSceneRequest(ApiRequest, Serializable):
         self,
         scene_id: str,
         region_id: str,
-        request
     ):
         self.scene_id = scene_id
         self.region_id = region_id
-        self.momentary = request.args.get('momentary') == 'true'
         self.validate()
 
-    def required_fields(self):
+    def required_fields(
+        self
+    ):
         return ['scene_id']
 
 
 class GetDevicesRequest(Serializable):
     def to_dict(self):
         return {
-            'method': KasaRest.GET_DEVICE_LIST
+            'method': KasaRest.GetDeviceList
         }
 
 
-class KasaTokenRequest(ApiRequest, Serializable):
-    def __init__(self, username, password):
+class KasaTokenRequest(Validatable, Serializable):
+    def __init__(
+        self,
+        username: str,
+        password: str
+    ):
         self.username = username
         self.password = password
         self.validate()
 
     def to_dict(self):
         return {
-            KasaRest.METHOD: KasaRequestMethod.LOGIN,
-            KasaRest.PARAMS: {
-                KasaRest.APP_TYPE: KasaRest.ANDROID,
-                KasaRest.USERNAME: self.username,
-                KasaRest.PASSWORD: self.password,
-                KasaRest.TERMINAL_ID: '43224'
+            'method': 'login',
+            'params': {
+                'appType': 'Kasa_Android',
+                'cloudUserName': self.username,
+                'cloudPassword': self.password,
+                'terminalUUID': '43224'
             }
         }
 
@@ -193,18 +199,24 @@ class KasaTokenRequest(ApiRequest, Serializable):
                 'password']
 
 
-class MappedSceneRequest(ApiRequest, Serializable):
-    def __init__(self, device_id, preset_id):
+class MappedSceneRequest(Validatable, Serializable):
+    def __init__(
+        self,
+        device_id: str,
+        preset_id: str
+    ):
         self.device_id = device_id
         self.preset_id = preset_id
         self.validate()
 
-    def required_fields(self):
+    def required_fields(
+        self
+    ):
         return ['device_id',
                 'preset_id']
 
 
-class CreatePresetRequest(ApiRequest, Serializable):
+class CreatePresetRequest(Validatable, Serializable):
     def __init__(
         self,
         body: dict
@@ -212,7 +224,9 @@ class CreatePresetRequest(ApiRequest, Serializable):
         self.body = body
         self.validate()
 
-    def required_fields(self):
+    def required_fields(
+        self
+    ):
         return ['body']
 
 
@@ -246,11 +260,14 @@ class KasaGetDevicesResponse(Serializable):
         self.response: KasaResponse = data
 
     @property
-    def device_list(self):
-        return (self.response.result.get(
-            KasaRest.DEVICE_LIST)
+    def device_list(
+        self
+    ):
+        return (
+            self.response.result.get('deviceList')
             if self.response.has_result
-            else list())
+            else list()
+        )
 
 
 class SetDevicePresetResponse(Serializable):
@@ -270,25 +287,34 @@ class KasaTokenResponse(KasaResponse):
         token = (self.result.get('token')
                  if self.has_result
                  else None)
+
         self.token = token
 
 
 class GetKasaDeviceStateRequest(KasaApiRequest):
-    def __init__(self, device_id):
+    def __init__(
+        self,
+        device_id: str
+    ):
         super().__init__(
             device_id,
             self.get_request_data())
 
-    def get_request_data(self):
+    def get_request_data(
+        self
+    ):
         return {
-            KasaRest.SYSTEM: {
-                KasaRest.GET_SYSINFO: None
+            'system': {
+                'get_sysinfo': None
             }
         }
 
 
-class CreateRegionRequest(ApiRequest, Serializable):
-    def __init__(self, data):
+class CreateRegionRequest(Validatable, Serializable):
+    def __init__(
+        self,
+        data
+    ):
         self.region_name = data.get('region_name')
         self.region_description = data.get('region_description')
         self.validate()
@@ -298,15 +324,20 @@ class CreateRegionRequest(ApiRequest, Serializable):
                 'region_description']
 
 
-class UpdateDeviceRequest(ApiRequest, Serializable):
-    def __init__(self, data):
+class UpdateDeviceRequest(Validatable, Serializable):
+    def __init__(
+        self,
+        data
+    ):
         self.device_id = data.get('device_id')
         self.device_name = data.get('device_name')
         self.device_type = data.get('device_type')
         self.region_id = data.get('region_id')
         self.validate()
 
-    def required_fields(self):
+    def required_fields(
+        self
+    ):
         return ['device_id',
                 'device_name',
                 'device_type',
@@ -314,7 +345,10 @@ class UpdateDeviceRequest(ApiRequest, Serializable):
 
 
 class CreateSceneCategoryRequest:
-    def __init__(self, data):
+    def __init__(
+        self,
+        data
+    ):
         self.scene_category = data.get('scene_category')
 
 

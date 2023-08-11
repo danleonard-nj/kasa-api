@@ -37,13 +37,6 @@ async def get_all(container):
 
     return await kasa_preset_service.get_all_presets()
 
-    # return {
-    #     'presets': [
-    #         obj.to_dict()
-    #         for obj in result
-    #     ]
-    # }
-
 
 @preset_bp.configure('/api/preset', methods=['POST'],  auth_scheme=AuthPolicy.Write)
 async def create_preset(container):

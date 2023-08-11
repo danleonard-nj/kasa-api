@@ -84,8 +84,7 @@ async def run_scene(container, id: str):
 
     run_scene_request = RunSceneRequest(
         scene_id=id,
-        region_id=region,
-        request=request)
+        region_id=region)
 
     result = await kasa_scene_service.run_scene(
         request=run_scene_request)
@@ -99,11 +98,6 @@ async def get_categories(container):
         KasaSceneCategoryService)
 
     return await kasa_scene_cageory_service.get_scene_categories()
-
-    # return [
-    #     item.to_dict()
-    #     for item in results
-    # ]
 
 
 @scene_bp.configure('/api/scene/category', methods=['POST'], auth_scheme=AuthPolicy.Write)

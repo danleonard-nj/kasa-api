@@ -17,26 +17,6 @@ class KasaClientResponseProvider:
     ):
         self.__kasa_client_response_service = kasa_client_response_service
 
-    async def create_client_response(
-        self,
-        device_id: str,
-        preset_id: str,
-        client_response: Dict
-    ) -> Dict:
-
-        ArgumentNullException.if_none(client_response, 'client_response')
-        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
-        ArgumentNullException.if_none_or_whitespace(preset_id, 'preset_id')
-
-        logger.info(f'Create client response: {client_response}')
-
-        response = await self.__kasa_client_response_service.create_client_response(
-            device_id=device_id,
-            preset_id=preset_id,
-            client_response=client_response)
-
-        return response
-
     async def update_client_response(
         self,
         body: Dict

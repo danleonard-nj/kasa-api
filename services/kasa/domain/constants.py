@@ -10,7 +10,7 @@ class KasaDeviceType:
 
 
 class KasaRequestMethod:
-    LOGIN = 'login'
+    Login = 'login'
     PASSTHROUGH = 'passthrough'
 
 
@@ -21,17 +21,17 @@ class KasaRest:
     ERROR_CODE = 'error_code'
     MESSAGE = 'msg'
     RESULT = 'result'
-    APP_TYPE = 'appType'
-    USERNAME = 'cloudUserName'
-    PASSWORD = 'cloudPassword'
-    TERMINAL_ID = 'terminalUUID'
-    GET_DEVICE_LIST = 'getDeviceList'
+    AppType = 'appType'
+    Username = 'cloudUserName'
+    Password = 'cloudPassword'
+    TerminalId = 'terminalUUID'
+    GetDeviceList = 'getDeviceList'
     DEVICE_LIST = 'deviceList'
     ANDROID = 'Kasa_Android'
     REQUEST_DATA = 'requestData'
     DEVICE_ID = 'deviceId'
     PARAMS = 'params'
-    METHOD = 'method'
+    Method = 'method'
     RELAY_STATE = 'relay_state'
     SET_RELAY_STATE = 'set_relay_state'
     STATE = 'state'
