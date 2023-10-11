@@ -1,14 +1,11 @@
-from abc import abstractmethod
 from typing import Dict, List
 
-from framework.validators.nulls import none_or_whitespace
+from framework.exceptions.nulls import ArgumentNullException
+from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from data.constants import MongoConstants
 from data.queries import GetDevicesByRegionQuery, GetDevicesQuery
-from data.repositories.async_mongo_repository import MongoRepositoryAsync
-from domain.exceptions import NullArgumentException
-from framework.serialization import Serializable
 
 
 class KasaDeviceRepository(MongoRepositoryAsync):
@@ -21,12 +18,24 @@ class KasaDeviceRepository(MongoRepositoryAsync):
             database=MongoConstants.DatabaseName,
             collection=MongoConstants.KasaDeviceCollectionName)
 
+    async def get_device_by_id(
+        self,
+        device_id: str
+    ):
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
+
+        result = await self.collection.find_one({
+            'device_id': device_id
+        })
+
+        return result
+
     async def get_devices_by_region(
         self,
         region_id: str
     ) -> List[dict]:
 
-        NullArgumentException.if_none_or_whitespace(region_id)
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
 
         results = self.collection.find({
             'device_region_id': region_id
@@ -53,15 +62,13 @@ class KasaDeviceRepository(MongoRepositoryAsync):
 
     async def get_devices_ids_by_region(
         self,
-        region_id
+        region_id: str
     ):
         '''
         Get device IDs tied to the provided reg
         '''
 
-        if none_or_whitespace(region_id):
-            NullArgumentException.if_none_or_whitespace(
-                region_id, 'region_id')
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
 
         query = GetDevicesByRegionQuery(
             region_id=region_id)

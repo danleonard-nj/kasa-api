@@ -89,7 +89,7 @@ class KasaPresetServiceTests(ApplicationBase):
             await self.repo.insert(preset)
 
         # Act
-        presets = await self.service.get_all_presets()
+        presets = await self.service.get_presets_by_ids()
 
         # Assert
         self.assertIsNotNone(presets)

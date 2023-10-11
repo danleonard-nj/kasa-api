@@ -45,7 +45,7 @@ class KasaPlug(KasaDevice, Hashable):
             return
 
         # Create the base Kasa device
-        device = KasaDevice.from_kasa_device_json_object(
+        device = KasaDevice.from_device_json_object(
             kasa_device=kasa_response.device_object)
 
         # Get the power state (on/off)

@@ -77,7 +77,7 @@ class KasaDevice(Serializable, Selectable):
         return kasa_request.to_dict()
 
     @staticmethod
-    def from_kasa_device_json_object(
+    def from_device_json_object(
         kasa_device: Dict
     ):
         '''
@@ -121,5 +121,6 @@ class KasaDevice(Serializable, Selectable):
         Update the device's region
         '''
 
-        ArgumentNullException.if_none_or_whitespace(region_id)
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
+
         self.region_id = region_id

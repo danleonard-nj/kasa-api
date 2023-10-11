@@ -392,3 +392,12 @@ class DeviceSyncResponse(Serializable):
         self.destructive = destructive
         self.created = created
         self.removed = removed
+
+
+class DeleteKasaSceneResponse(Serializable):
+    def __init__(
+        self,
+        modified_count: int
+    ):
+
+        self.modified_count = modified_count

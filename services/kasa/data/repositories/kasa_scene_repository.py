@@ -1,6 +1,8 @@
-from data.constants import MongoConstants
-from data.repositories.async_mongo_repository import MongoRepositoryAsync
+from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.results import DeleteResult
+
+from data.constants import MongoConstants
 
 
 class KasaSceneRepository(MongoRepositoryAsync):
@@ -13,13 +15,28 @@ class KasaSceneRepository(MongoRepositoryAsync):
             database=MongoConstants.DatabaseName,
             collection=MongoConstants.KasaSceneCollectionName)
 
+    async def delete_scene_by_id(
+        self,
+        scene_id: str
+    ) -> DeleteResult:
+
+        return await self.delete({
+            'scene_id': scene_id
+        })
+
+    async def get_scene_by_id(
+        self,
+        scene_id: str
+    ) -> dict | None:
+
+        return await self.get({
+            'scene_id': scene_id
+        })
+
     async def scene_exists(
         self,
         scene_name: str
-    ) -> dict:
-        '''
-        Verify a scene exists by name
-        '''
+    ) -> bool:
 
         value = await self.get({
             'scene_name': scene_name
@@ -27,6 +44,10 @@ class KasaSceneRepository(MongoRepositoryAsync):
 
         return value is not None
 
-    async def query(self, filter: dict) -> list[dict]:
+    async def query(
+        self,
+        filter: dict
+    ) -> list[dict]:
+
         result = self.collection.find(filter)
         return await result.to_list(length=None)

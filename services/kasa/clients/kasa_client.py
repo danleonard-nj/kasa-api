@@ -9,7 +9,6 @@ from domain.cache import CacheKey
 from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
                          KasaGetDevicesResponse, KasaResponse,
                          KasaTokenRequest, KasaTokenResponse)
-from services.kasa_event_service import KasaEventService
 
 logger = get_logger(__name__)
 
@@ -19,8 +18,7 @@ class KasaClient:
         self,
         configuration: Configuration,
         http_client: AsyncClient,
-        cache_client: CacheClientAsync,
-        event_service: KasaEventService
+        cache_client: CacheClientAsync
     ):
         self.__cache_client = cache_client
         self.__http_client = http_client
@@ -175,24 +173,24 @@ class KasaClient:
         return KasaTokenResponse(
             data=content)
 
-    async def refresh_token(
-        self
-    ) -> str:
-        '''
-        Refresh the Kasa token if the cached token
-        is expired.  This can be called proactively
-        before concurrent calls to the Kasa client
-        to prevent multiple calls fetching the token
-        before the first call is cached
-        '''
+    # async def refresh_token(
+    #     self
+    # ) -> str:
+    #     '''
+    #     Refresh the Kasa token if the cached token
+    #     is expired.  This can be called proactively
+    #     before concurrent calls to the Kasa client
+    #     to prevent multiple calls fetching the token
+    #     before the first call is cached
+    #     '''
 
-        cached_token = await self.__cache_client.get_cache(
-            key=CacheKey.kasa_token())
+    #     cached_token = await self.__cache_client.get_cache(
+    #         key=CacheKey.kasa_token())
 
-        if cached_token is None:
-            logger.info(f'Refreshing Kasa client token')
+    #     if cached_token is None:
+    #         logger.info(f'Refreshing Kasa client token')
 
-            token = await self.get_kasa_token()
-            logger.info(f'Token: {token}')
-        else:
-            logger.info('Kasa client token is valid')
+    #         token = await self.get_kasa_token()
+    #         logger.info(f'Token: {token}')
+    #     else:
+    #         logger.info('Kasa client token is valid')

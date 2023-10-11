@@ -129,3 +129,9 @@ class PresetExistsException(Exception):
     def __init__(self, preset_name, *args: object) -> None:
         super().__init__(
             f"Preset with the name '{preset_name}' already exists")
+
+
+class ClientResponseNotFoundException(Exception):
+    def __init__(self, device_id, *args: object) -> None:
+        super().__init__(
+            f"No client response record found for device with the ID '{device_id}' exists")

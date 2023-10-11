@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from framework.clients.cache_client import CacheClientAsync
 from framework.concurrency import TaskCollection
@@ -10,9 +10,11 @@ from framework.validators.nulls import none_or_whitespace
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from domain.cache import CacheExpiration, CacheKey
-from domain.exceptions import (DeviceNotFoundException,
+from domain.exceptions import (ClientResponseNotFoundException,
+                               DeviceNotFoundException,
                                InvalidDeviceRequestException,
-                               NullArgumentException, RegionNotFoundException)
+                               RegionNotFoundException)
+from domain.kasa.client_response import KasaClientResponse
 from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import (DeviceSyncResponse, KasaRequest, KasaResponse,
@@ -77,6 +79,7 @@ class KasaDeviceService:
 
         logger.info(f'Get device: {device_id}')
 
+        # Get cached device if it exists
         device = await self.__cache_client.get_json(
             key=CacheKey.device_key(
                 device_id=device_id))
@@ -86,11 +89,12 @@ class KasaDeviceService:
             return KasaDevice(
                 data=device)
 
-        device = await self.__device_repository.get({
-            'device_id': device_id
-        })
+        # Fetch the device if it's not cached
+        device = await self.__device_repository.get_device_by_id(
+            device_id=device_id)
 
         if device is None:
+            logger.info(f'No device found: {device_id}')
             raise DeviceNotFoundException(
                 device_id=device_id)
 
@@ -132,10 +136,9 @@ class KasaDeviceService:
 
         # Fetch all known devices from database
         device_entities = await self.__device_repository.get_all()
-        known_devices = [
-            KasaDevice(data=device)
-            for device in device_entities
-        ]
+
+        known_devices = [KasaDevice(data=device)
+                         for device in device_entities]
 
         logger.info(f'Known devices fetched: {len(known_devices)}')
 
@@ -148,11 +151,9 @@ class KasaDeviceService:
         # Get all Kasa device from Kasa
         # service
         kasa_devices = await self.__kasa_client.get_devices()
-        kasa_device_list = [
-            KasaDevice.from_kasa_device_json_object(
-                kasa_device=kasa_device)
-            for kasa_device in kasa_devices.device_list
-        ]
+
+        kasa_device_list = [KasaDevice.from_device_json_object(kasa_device=kasa_device)
+                            for kasa_device in kasa_devices.device_list]
 
         logger.info(f'Kasa devices fetched: {len(kasa_device_list)}')
 
@@ -236,22 +237,21 @@ class KasaDeviceService:
         ArgumentNullException.if_none(device, 'device')
         ArgumentNullException.if_none(preset, 'preset')
 
-        logger.info(
-            f'Set device state: {device.device_id}: Preset: {preset.preset_id}')
+        logger.info(f'Device state: {device.device_id} -> {preset.preset_id}')
 
-        if not none_or_whitespace(kasa_token):
-            logger.info(f'Using provided client token: {kasa_token}')
-
+        # Get the device model from generic device
         typed_device = preset.to_device_preset(
             device=device)
 
+        # Generate the request body
         kasa_request = (
-            preset
-            .to_request(device=typed_device)
-            .get_request_body())
+            preset.to_request(
+                device=typed_device).get_request_body()
+        )
 
         logger.info(f'Sending Kasa device state request')
 
+        # Get the state key for the updated device
         state_key = typed_device.state_key()
         logger.info(f'Device state key: {device.device_name}: {state_key}')
 
@@ -262,13 +262,14 @@ class KasaDeviceService:
 
         # TODO: Clear this up, do these cases actually happen?
         if isinstance(client_results, list):
-
-            response = [res.to_dict()
-                        for res in client_results]
+            response = [client_result.to_dict()
+                        for client_result in client_results]
         else:
             logger.info('Non-list response type')
             response = client_results.to_dict()
 
+        # Send the event that captures the client response
+        # for the device state change request
         asyncio.create_task(
             self.__event_service.send_client_response_event(
                 device_id=device.device_id,
@@ -286,25 +287,26 @@ class KasaDeviceService:
         Update a known Kasa device
         '''
 
-        NullArgumentException.if_none(update_request, 'update_request')
+        ArgumentNullException.if_none(update_request, 'update_request')
 
         logger.info(f'Update device: {update_request.to_dict()}')
 
         # Expire cached device list and cached device that
         # we're updating heres
-        clear_cache = TaskCollection(
+        await TaskCollection(
             self.expire_cached_device(
                 device_id=update_request.device_id),
-            self.expire_cached_device_list())
-
-        await clear_cache.run()
+            self.expire_cached_device_list()).run()
 
         if none_or_whitespace(update_request.device_id):
+            logger.info(f'No device ID provided in device update request')
             raise InvalidDeviceRequestException('No device ID provided')
 
+        # Get device will throw if the device doesn't exist
         device = await self.get_device(
             device_id=update_request.device_id)
 
+        # Update the mutable fields of the device
         device.update_device(
             device_name=update_request.device_name,
             device_type=update_request.device_type,
@@ -312,14 +314,16 @@ class KasaDeviceService:
 
         logger.info(f'Updated device: {device.to_dict()}')
 
-        await self.__device_repository.update(
+        update_result = await self.__device_repository.update(
             selector=device.get_selector(),
             values=device.to_dict())
 
+        logger.info(f'Update result: {update_result.modified_count}')
+
         cache_key = CacheKey.device_key(
             device_id=device.device_id)
-        logger.info(f'Expire cached device: {cache_key}')
 
+        logger.info(f'Expire cached device: {cache_key}')
         asyncio.create_task(
             self.__cache_client.delete_key(cache_key))
 
@@ -337,39 +341,41 @@ class KasaDeviceService:
 
         # Expire cached device and device list
 
-        NullArgumentException.if_none_or_whitespace(region_id, 'region_id')
-        NullArgumentException.if_none_or_whitespace(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         # Expire cached device list
-        expirations = TaskCollection(
+        await TaskCollection(
             self.expire_cached_device(
                 device_id=device_id),
-            self.expire_cached_device_list())
-        await expirations.run()
+            self.expire_cached_device_list()
+        ).run()
 
         logger.info(f'Set device region: {device_id}: {region_id}')
 
-        fetch = TaskCollection(
-            self.__region_service.get_region(
-                region_id=region_id),
-            self.__device_repository.get({
-                'device_id': device_id
-            }))
-
-        region, entity = await fetch.run()
+        # Fetch the device and region in parallel
+        region, device_entity = (
+            await TaskCollection(
+                self.__region_service.get_region(
+                    region_id=region_id),
+                self.__device_repository.get_device_by_id(
+                    device_id=device_id)).run()
+        )
 
         # Verify provided device exists
-        if entity is None:
+        if device_entity is None:
+            logger.info(f'No device found: {device_id}')
             raise DeviceNotFoundException(
                 device_id=device_id)
 
         # Verify provided region exists
         if region is None:
+            logger.info(f'No region found: {region_id}')
             raise RegionNotFoundException(
                 region_id=region_id)
 
         device = KasaDevice(
-            data=entity)
+            data=device_entity)
 
         device.set_region(
             region_id=region_id)
@@ -377,9 +383,10 @@ class KasaDeviceService:
         logger.info(
             f'Updating device: {device.device_name} to region: {region.region_name}')
 
-        update_result = await self.__device_repository.replace(
+        # Update the device region document
+        update_result = await self.__device_repository.update(
             selector=device.get_selector(),
-            document=device.to_dict())
+            values=device.to_dict())
 
         logger.info(f'Update result: {update_result.modified_count}')
         return device
@@ -387,7 +394,7 @@ class KasaDeviceService:
     async def get_device_client_response(
         self,
         device_id: str
-    ) -> Dict:
+    ) -> KasaClientResponse:
         '''
         Get the stored client response for a
         known Kasa device
@@ -395,15 +402,17 @@ class KasaDeviceService:
         `device_id`: Kasa device ID
         '''
 
-        NullArgumentException.if_none_or_whitespace(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
+        # Fetch the Kasa client response
         client_response = await self.__client_response_service.get_client_response(
             device_id=device_id)
 
         if client_response is None:
-            raise Exception('No client response exists for device')
+            raise ClientResponseNotFoundException(
+                device_id=device_id)
 
-        return client_response.to_dict()
+        return client_response
 
     async def get_devices(
         self,
@@ -414,12 +423,14 @@ class KasaDeviceService:
         Get devices from a list of device IDs
         '''
 
-        NullArgumentException.if_none(device_ids, 'device_ids')
+        ArgumentNullException.if_none(device_ids, 'device_ids')
 
+        # Fetch all devices for a given region if one is provided
         entities = await self.__device_repository.get_devices(
             device_ids=device_ids,
             region_id=region_id)
 
+        # Parse entities into device models
         devices = [KasaDevice(data=entity)
                    for entity in entities]
 
