@@ -22,7 +22,7 @@ class KasaSceneServiceTests(ApplicationBase):
         scene = helper.get_scene(**kwargs)
         await repository.insert(scene)
 
-        return KasaScene(scene)
+        return KasaScene.from_dict(scene)
 
     async def test_create_scene(self):
         service: KasaSceneService = self.resolve(

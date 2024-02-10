@@ -79,6 +79,7 @@ class KasaPresetServiceTests(ApplicationBase):
 
     async def test_get_presets(self):
         # Arrange
+        preset_ids = []
         for _ in range(10):
             preset_id = self.guid()
 
@@ -87,9 +88,11 @@ class KasaPresetServiceTests(ApplicationBase):
                 preset_id=preset_id)
 
             await self.repo.insert(preset)
+            preset_ids.append(preset_id)
 
         # Act
-        presets = await self.service.get_presets_by_ids()
+        presets = await self.service.get_presets_by_ids(
+            preset_ids=preset_ids)
 
         # Assert
         self.assertIsNotNone(presets)

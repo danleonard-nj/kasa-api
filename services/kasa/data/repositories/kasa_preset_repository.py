@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -47,7 +47,7 @@ class KasaPresetRepository(MongoRepositoryAsync):
     async def get_presets(
         self,
         preset_ids: List[str]
-    ) -> List[Dict]:
+    ) -> list[dict]:
 
         query = {
             'preset_id': {
@@ -63,7 +63,7 @@ class KasaPresetRepository(MongoRepositoryAsync):
     async def get_preset_by_id(
         self,
         preset_id: str
-    ) -> [Dict | None]:
+    ) -> Union[dict, None]:
 
         query = {
             'preset_id': preset_id

@@ -16,9 +16,8 @@ load_dotenv()
 
 app = Quart(__name__)
 
-ContainerProvider.initialize_provider()
-InternalProvider.bind(ContainerProvider.get_service_provider())
-
+provider = ContainerProvider.get_service_provider()
+InternalProvider.bind(provider)
 
 app.register_blueprint(health_bp)
 app.register_blueprint(devices_bp)

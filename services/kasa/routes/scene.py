@@ -1,14 +1,12 @@
-from framework.logger.providers import get_logger
-from framework.rest.blueprints.meta import MetaBlueprint
-from framework.validators.nulls import none_or_whitespace
-from httpx import Auth
-from quart import request
 from domain.kasa.auth import AuthPolicy
-
 from domain.rest import (CreateSceneCategoryRequest, CreateSceneRequest,
                          RunSceneRequest, UpdateSceneRequest)
+from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
+from quart import request
 from services.kasa_scene_category_service import KasaSceneCategoryService
 from services.kasa_scene_service import KasaSceneService
+from utils.meta import MetaBlueprint
 
 logger = get_logger(__name__)
 scene_bp = MetaBlueprint('scene_bp', __name__)

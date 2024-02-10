@@ -9,4 +9,4 @@ python-dotenv
 aioredis
 deprecated
 httpx
-motor
+motor   

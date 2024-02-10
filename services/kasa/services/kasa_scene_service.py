@@ -1,15 +1,11 @@
-from typing import List
-
-from framework.exceptions.nulls import ArgumentNullException
-from framework.logger.providers import get_logger
-
 from data.repositories.kasa_scene_repository import KasaSceneRepository
-from domain.exceptions import (NullArgumentException, SceneExistsException,
-                               SceneNotFoundException)
+from domain.exceptions import SceneExistsException, SceneNotFoundException
 from domain.kasa.scene import KasaScene
 from domain.rest import (CreateSceneRequest, DeleteKasaSceneResponse,
                          MappedSceneRequest, RunSceneRequest,
                          UpdateSceneRequest)
+from framework.exceptions.nulls import ArgumentNullException
+from framework.logger.providers import get_logger
 from services.kasa_execution_service import KasaExecutionService
 from utils.helpers import DateTimeUtil
 
@@ -166,7 +162,7 @@ class KasaSceneService:
 
     async def get_all_scenes(
         self,
-    ) -> List[KasaScene]:
+    ) -> list[KasaScene]:
         '''
         Get the list of scenes
         '''
@@ -206,7 +202,7 @@ class KasaSceneService:
     async def run_scene(
         self,
         request: RunSceneRequest
-    ) -> List[MappedSceneRequest]:
+    ) -> list[MappedSceneRequest]:
 
         ArgumentNullException.if_none(request, 'request')
         ArgumentNullException.if_none_or_whitespace(

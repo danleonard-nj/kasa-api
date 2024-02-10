@@ -1,3 +1,4 @@
+from typing import Dict, Union
 from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.results import DeleteResult
@@ -27,7 +28,7 @@ class KasaSceneRepository(MongoRepositoryAsync):
     async def get_scene_by_id(
         self,
         scene_id: str
-    ) -> dict | None:
+    ) -> Union[Dict, None]:
 
         return await self.get({
             'scene_id': scene_id
