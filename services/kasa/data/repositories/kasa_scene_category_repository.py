@@ -13,3 +13,15 @@ class KasaSceneCategoryRepository(MongoRepositoryAsync):
             client=client,
             database=MongoConstants.DatabaseName,
             collection=MongoConstants.KasaSceneCategoryCollectionName)
+
+    async def get_category_by_name(
+        self,
+        category_name: str
+    ) -> dict:
+        '''
+        Get a scene category by name
+        '''
+
+        return await self.get({
+            'scene_category': category_name
+        })

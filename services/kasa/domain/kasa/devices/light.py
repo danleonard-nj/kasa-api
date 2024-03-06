@@ -1,16 +1,12 @@
 from typing import Dict, Union
-
-from framework.crypto.hashing import sha256
 from framework.exceptions.nulls import ArgumentNullException
-
-from domain.common import Hashable
 from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
 from utils.helpers import generate_key
 
 
-class KasaLight(KasaDevice, Hashable):
+class KasaLight(KasaDevice):
     def __init__(
         self,
         device_id: str,

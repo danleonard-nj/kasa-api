@@ -18,8 +18,8 @@ class KasaSceneService:
         scene_repository: KasaSceneRepository,
         execution_service: KasaExecutionService
     ):
-        self.__scene_repository = scene_repository
-        self.__execution_service = execution_service
+        self._scene_repository = scene_repository
+        self._execution_service = execution_service
 
     async def create_scene(
         self,
@@ -34,7 +34,7 @@ class KasaSceneService:
         logger.info('Create scene')
 
         # Verify the scene doesn't already exist
-        scene_exists = await self.__scene_repository.scene_exists(
+        scene_exists = await self._scene_repository.scene_exists(
             scene_name=request.scene_name)
 
         # Throw if it does
@@ -47,7 +47,7 @@ class KasaSceneService:
         kasa_scene = KasaScene.create_scene(
             data=request.to_dict())
 
-        insert_result = await self.__scene_repository.insert(
+        insert_result = await self._scene_repository.insert(
             document=kasa_scene.to_dict())
 
         logger.info(f'Insert result: {insert_result.inserted_id}')
@@ -67,7 +67,7 @@ class KasaSceneService:
 
         logger.info(f'Get scene: {scene_id}')
 
-        scene = await self.__scene_repository.get_scene_by_id(
+        scene = await self._scene_repository.get_scene_by_id(
             scene_id=scene_id
         )
 
@@ -95,7 +95,7 @@ class KasaSceneService:
         logger.info(f'Delete scene: {scene_id}')
 
         # Verify the scene actually exists
-        scene = await self.__scene_repository.get_scene_by_id(
+        scene = await self._scene_repository.get_scene_by_id(
             scene_id=scene_id
         )
 
@@ -104,10 +104,11 @@ class KasaSceneService:
             raise SceneNotFoundException(
                 scene_id=scene_id)
 
+        scene = KasaScene.from_dict(data=scene)
+
         # Delete the scene
-        delete_result = await self.__scene_repository.delete({
-            'scene_id': scene_id
-        })
+        delete_result = await self._scene_repository.delete(
+            scene.get_selector())
 
         return DeleteKasaSceneResponse(
             modified_count=delete_result.deleted_count)
@@ -125,7 +126,7 @@ class KasaSceneService:
         logger.info(f'Fetching scene from db: {update_request.scene_id}')
 
         # Verify the scene exists
-        entity = await self.__scene_repository.get_scene_by_id(
+        entity = await self._scene_repository.get_scene_by_id(
             scene_id=update_request.scene_id
         )
 
@@ -142,17 +143,16 @@ class KasaSceneService:
         # TODO: Move some/all of this logic to domain object
         data = (
             existing_scene.to_dict() |
-            update_request.to_dict() | {
-                'modified_date': DateTimeUtil.timestamp()
-            }
+            update_request.to_dict()
         )
 
         updated_scene = KasaScene.from_dict(data=data)
+        updated_scene.modified_date = DateTimeUtil.timestamp()
 
         logger.info(f'Updating scene: {existing_scene.scene_id}')
 
         # Replace the scene document in the db
-        update_result = await self.__scene_repository.update(
+        update_result = await self._scene_repository.update(
             selector=updated_scene.get_selector(),
             values=updated_scene.to_dict())
 
@@ -169,7 +169,7 @@ class KasaSceneService:
 
         logger.info('Get all scenes')
 
-        entities = await self.__scene_repository.get_all()
+        entities = await self._scene_repository.get_all()
 
         kasa_scenes = [
             KasaScene.from_dict(data=entity)
@@ -186,7 +186,7 @@ class KasaSceneService:
         ArgumentNullException.if_none_or_whitespace(
             scene_category_id, 'scene_category_id')
 
-        entities = await self.__scene_repository.query({
+        entities = await self._scene_repository.query({
             'scene_category_id': scene_category_id
         })
 
@@ -215,6 +215,6 @@ class KasaSceneService:
             scene_id=request.scene_id)
 
         # Execute the scene
-        return await self.__execution_service.execute_scene(
+        return await self._execution_service.execute_scene(
             scene=scene,
             region_id=request.region_id)

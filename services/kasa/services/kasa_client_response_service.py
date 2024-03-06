@@ -1,12 +1,11 @@
 from typing import Dict
 
-from framework.logger import get_logger
-
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
 from domain.exceptions import NullArgumentException
 from domain.kasa.client_response import KasaClientResponse
 from domain.rest import UpdateClientResponseRequest
+from framework.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -16,7 +15,7 @@ class KasaClientResponseService:
         self,
         client_response_repository: KasaClientResponseRepository
     ):
-        self.__client_response_repository = client_response_repository
+        self._client_response_repository = client_response_repository
 
     async def update_client_response(
         self,
@@ -34,7 +33,7 @@ class KasaClientResponseService:
 
         logger.info(f'Update client response for device: {request.device_id}')
 
-        entity = await self.__client_response_repository.get({
+        entity = await self._client_response_repository.get({
             'device_id': request.device_id
         })
 
@@ -53,7 +52,7 @@ class KasaClientResponseService:
             request=request)
 
         # Update the record
-        result = await self.__client_response_repository.update(
+        result = await self._client_response_repository.update(
             model.get_selector(),
             model.to_dict())
 
@@ -79,7 +78,7 @@ class KasaClientResponseService:
             client_response=client_response,
             state_key=state_key)
 
-        await self.__client_response_repository.insert(
+        await self._client_response_repository.insert(
             model.to_dict())
 
         return model.to_dict()
@@ -93,7 +92,7 @@ class KasaClientResponseService:
         '''
 
         logger.info(f'Get client response for device: {device_id}')
-        entity = await self.__client_response_repository.get({
+        entity = await self._client_response_repository.get({
             'device_id': device_id
         })
 

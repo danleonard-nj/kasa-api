@@ -1,8 +1,5 @@
+import uuid
 from typing import List
-
-from framework.clients.cache_client import CacheClientAsync
-from framework.concurrency import TaskCollection
-from framework.logger import get_logger
 
 from data.repositories.kasa_scene_category_repository import \
     KasaSceneCategoryRepository
@@ -11,7 +8,11 @@ from domain.exceptions import (NullArgumentException,
                                SceneCategoryNotFoundException)
 from domain.kasa.scene import KasaSceneCategory
 from domain.rest import CreateSceneCategoryRequest
+from framework.concurrency import TaskCollection
+from framework.exceptions.nulls import ArgumentNullException
+from framework.logger import get_logger
 from services.kasa_scene_service import KasaSceneService
+from utils.helpers import DateTimeUtil
 
 logger = get_logger(__name__)
 
@@ -20,41 +21,41 @@ class KasaSceneCategoryService:
     def __init__(
         self,
         scene_category_repository: KasaSceneCategoryRepository,
-        cache_client: CacheClientAsync,
         scene_service: KasaSceneService,
     ):
-        self.__scene_category_repository = scene_category_repository
-        self.__cache_client = cache_client
-        self.__scene_service = scene_service
+        self._scene_category_repository = scene_category_repository
+        self._scene_service = scene_service
 
     async def create_scene_category(
         self,
         request: CreateSceneCategoryRequest
     ) -> KasaSceneCategory:
 
-        NullArgumentException.if_none(
+        ArgumentNullException.if_none(
             request, 'request')
-        NullArgumentException.if_none_or_whitespace(
+        ArgumentNullException.if_none_or_whitespace(
             request.scene_category, 'scene_category')
 
         logger.info(f'Create scene category: {request.scene_category}')
 
-        category = await self.__scene_category_repository.get({
-            'scene_category': request.scene_category
-        })
+        category = await self._scene_category_repository.get_category_by_name(
+            category_name=request.scene_category)
 
         # Throw if the scene doesn't exist
         if category is not None:
             raise SceneCategoryExistsException(
                 f"A scene category with the name '{request.scene_category}' exists")
 
-        scene_category = KasaSceneCategory.create_category(
-            category_name=request.scene_category)
+        scene_category = KasaSceneCategory(
+            scene_category_id=str(uuid.uuid4()),
+            scene_category=request.scene_category,
+            created_date=DateTimeUtil.timestamp()
+        )
 
         entity = scene_category.to_dict()
         logger.info(f'Scene category: {entity}')
 
-        await self.__scene_category_repository.insert(
+        await self._scene_category_repository.insert(
             entity)
 
         return scene_category
@@ -64,9 +65,9 @@ class KasaSceneCategoryService:
     ) -> List[KasaSceneCategory]:
         logger.info(f'Get scene categories')
 
-        entities = await self.__scene_category_repository.get_all()
+        entities = await self._scene_category_repository.get_all()
 
-        categories = [KasaSceneCategory(data=entity)
+        categories = [KasaSceneCategory.from_entity(entity)
                       for entity in entities]
 
         return categories
@@ -82,7 +83,7 @@ class KasaSceneCategoryService:
         logger.info(f'Get scene categories')
 
         # Fetch the scene cageory
-        category_entity = await self.__scene_category_repository.get({
+        category_entity = await self._scene_category_repository.get({
             'scene_category_id': scene_category_id
         })
 
@@ -93,7 +94,7 @@ class KasaSceneCategoryService:
         logger.info('Removing scenes from deleted category')
 
         # Fetch all scenes tied to the scene category
-        scenes = await self.__scene_service.get_scenes_by_category(
+        scenes = await self._scene_service.get_scenes_by_category(
             scene_category_id=scene_category_id)
 
         logger.info(f'Scenes in category: {len(scenes)}')
@@ -116,7 +117,7 @@ class KasaSceneCategoryService:
 
         await update_scenes.run()
 
-        result = await self.__scene_category_repository.delete({
+        result = await self._scene_category_repository.delete({
             'scene_category_id': scene_category_id
         })
 

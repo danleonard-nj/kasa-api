@@ -161,11 +161,13 @@ class KasaScene(Serializable):
 class KasaSceneCategory(Serializable):
     def __init__(
         self,
-        data: dict
+        scene_category_id: str,
+        scene_category: str,
+        created_date: int
     ):
-        self.scene_category_id = data.get('scene_category_id')
-        self.scene_category = data.get('scene_category')
-        self.created_date = data.get('created_date')
+        self.scene_category_id = scene_category_id
+        self.scene_category = scene_category
+        self.created_date = created_date
 
     def get_selector(
         self
@@ -173,6 +175,15 @@ class KasaSceneCategory(Serializable):
         return {
             'scene_category_id': self.scene_category_id
         }
+
+    @staticmethod
+    def from_entity(
+        data: dict
+    ):
+        return KasaSceneCategory(
+            scene_category_id=data.get('scene_category_id'),
+            scene_category=data.get('scene_category'),
+            created_date=data.get('created_date'))
 
     @staticmethod
     def create_category(

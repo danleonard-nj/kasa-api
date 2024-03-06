@@ -4,7 +4,6 @@ from typing import Dict, Union
 from framework.exceptions.nulls import ArgumentNullException
 from framework.serialization import Serializable
 
-from domain.common import Selectable
 from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
@@ -45,7 +44,7 @@ class KasaDeviceHandler:
             return KasaLight(**params)
 
 
-class KasaPreset(Serializable, Selectable):
+class KasaPreset(Serializable):
     def __init__(
         self,
         preset_id: str,

@@ -135,3 +135,8 @@ class ClientResponseNotFoundException(Exception):
     def __init__(self, device_id, *args: object) -> None:
         super().__init__(
             f"No client response record found for device with the ID '{device_id}' exists")
+
+
+class KasaClientResponseEventException(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)

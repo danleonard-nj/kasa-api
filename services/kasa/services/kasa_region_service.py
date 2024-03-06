@@ -1,14 +1,13 @@
 from typing import List
 
-from framework.logger.providers import get_logger
-from framework.validators.nulls import none_or_whitespace
-
 from data.repositories.kasa_region_repository import KasaRegionRepository
 from domain.common import KasaRegion
 from domain.exceptions import (InvalidRegionException,
                                InvalidRegionIdException, RegionExistsException,
                                RegionNotFoundException)
 from domain.rest import CreateRegionRequest
+from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
 
 logger = get_logger(__name__)
 
@@ -18,14 +17,14 @@ class KasaRegionService:
         self,
         repository: KasaRegionRepository
     ):
-        self.__repository = repository
+        self._repository = repository
 
     async def get_regions(
         self,
     ) -> List[KasaRegion]:
 
         logger.info(f'Fetching all regions')
-        regions = await self.__repository.get_all()
+        regions = await self._repository.get_all()
 
         models = [
             KasaRegion(data=region)
@@ -43,7 +42,7 @@ class KasaRegionService:
         if none_or_whitespace(region_id):
             raise InvalidRegionIdException(region_id)
 
-        result = await self.__repository.get({
+        result = await self._repository.get({
             'region_id': region_id
         })
 
@@ -60,7 +59,7 @@ class KasaRegionService:
     ):
 
         logger.info(f'Attempting delete for region: {region_id}')
-        existing = await self.__repository.get({
+        existing = await self._repository.get({
             'region_id': region_id
         })
 
@@ -68,7 +67,7 @@ class KasaRegionService:
         if existing is None:
             raise RegionNotFoundException(region_id)
 
-        deleted = await self.__repository.delete({
+        deleted = await self._repository.delete({
             'region_id': region_id
         })
 
@@ -80,7 +79,7 @@ class KasaRegionService:
     ) -> KasaRegion:
 
         logger.info(f'Create regions: {create_request.region_name}')
-        existing = await self.__repository.get({
+        existing = await self._repository.get({
             'region_name': create_request.region_name
         })
 
@@ -98,7 +97,7 @@ class KasaRegionService:
             region_name=create_request.region_name,
             region_description=create_request.region_description)
 
-        result = await self.__repository.insert(
+        result = await self._repository.insert(
             document=region.to_dict())
 
         logger.info(f'Created model: {result.inserted_id}')

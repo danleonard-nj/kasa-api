@@ -3,14 +3,12 @@ from typing import Dict
 
 from framework.exceptions.nulls import ArgumentNullException
 from framework.serialization import Serializable
-
-from domain.common import Selectable
 from domain.constants import KasaDeviceType
 from domain.exceptions import InvalidDeviceTypeException
 from domain.rest import KasaApiRequest
 
 
-class KasaDevice(Serializable, Selectable):
+class KasaDevice(Serializable):
     def __init__(
         self,
         data: Dict

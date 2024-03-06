@@ -24,8 +24,8 @@ class KasaPresetSevice:
         ArgumentNullException.if_none(preset_repository, 'preset_repository')
         ArgumentNullException.if_none(cache_client, 'cache_client')
 
-        self.__preset_repository = preset_repository
-        self.__cache_client = cache_client
+        self._preset_repository = preset_repository
+        self._cache_client = cache_client
 
     async def create_preset(
         self,
@@ -44,7 +44,7 @@ class KasaPresetSevice:
         logger.info(f'Preset name: {kasa_preset.preset_name}')
 
         # Verify the preset name doesn't already exist
-        exists = await self.__preset_repository.preset_exists_by_name(
+        exists = await self._preset_repository.preset_exists_by_name(
             preset_name=kasa_preset.preset_name)
 
         # If a preset already exists w/ the same name
@@ -54,7 +54,7 @@ class KasaPresetSevice:
                 preset_name=kasa_preset.preset_name)
 
         # Insert preset
-        result = await self.__preset_repository.insert(
+        result = await self._preset_repository.insert(
             document=kasa_preset.to_dict())
 
         cache_key = CacheKey.preset_list()
@@ -62,9 +62,9 @@ class KasaPresetSevice:
 
         # Delete the cached preset and preset list if it exists
         asyncio.create_task(
-            self.__cache_client.delete_key(cache_key))
+            self._cache_client.delete_key(cache_key))
         asyncio.create_task(
-            self.__cache_client.delete_key(CacheKey.preset_list()))
+            self._cache_client.delete_key(CacheKey.preset_list()))
 
         logger.info(f'Preset document: {str(result.inserted_id)}')
 
@@ -83,7 +83,7 @@ class KasaPresetSevice:
         ArgumentNullException.if_none_or_whitespace(
             update_request.preset_id, 'preset_id')
 
-        entity = await self.__preset_repository.get_preset_by_id(
+        entity = await self._preset_repository.get_preset_by_id(
             preset_id=update_request.preset_id)
 
         if entity is None:
@@ -103,7 +103,7 @@ class KasaPresetSevice:
 
         logger.info(f'Preset name: {kasa_preset.preset_name}')
 
-        update_result = await self.__preset_repository.update(
+        update_result = await self._preset_repository.update(
             selector=kasa_preset.get_selector(),
             values=kasa_preset.to_dict())
 
@@ -112,9 +112,9 @@ class KasaPresetSevice:
 
         # Delete the cached preset if it exists and the preset list
         asyncio.create_task(
-            self.__cache_client.delete_key(cache_key))
+            self._cache_client.delete_key(cache_key))
         asyncio.create_task(
-            self.__cache_client.delete_key(CacheKey.preset_list()))
+            self._cache_client.delete_key(CacheKey.preset_list()))
 
         logger.info(f'Modified count: {update_result.modified_count}')
 
@@ -135,7 +135,7 @@ class KasaPresetSevice:
 
         logger.info(f'Get preset: {preset_id}: {cache_key}')
 
-        preset = await self.__cache_client.get_json(
+        preset = await self._cache_client.get_json(
             key=cache_key)
 
         if preset is not None:
@@ -144,7 +144,7 @@ class KasaPresetSevice:
                 data=preset)
 
         logger.info(f'Fetching preset from database: {preset_id}')
-        entity = await self.__preset_repository.get_preset_by_id(
+        entity = await self._preset_repository.get_preset_by_id(
             preset_id=preset_id)
 
         # Preset doesn't exist
@@ -155,7 +155,7 @@ class KasaPresetSevice:
 
         # Cache the preset asynchonously
         asyncio.create_task(
-            self.__cache_client.set_json(
+            self._cache_client.set_json(
                 key=cache_key,
                 value=entity,
                 ttl=CacheExpiration.hours(24)))
@@ -177,7 +177,7 @@ class KasaPresetSevice:
         ArgumentNullException.if_none_or_whitespace(preset_id, 'preset_id')
 
         # Verify preset exists
-        preset = await self.__preset_repository.get_preset_by_id(
+        preset = await self._preset_repository.get_preset_by_id(
             preset_id=preset_id
         )
 
@@ -192,7 +192,7 @@ class KasaPresetSevice:
 
         logger.info(f'Deleting preset: {kasa_preset.preset_id}')
 
-        delete_result = await self.__preset_repository.delete_preset_by_id(
+        delete_result = await self._preset_repository.delete_preset_by_id(
             preset_id=kasa_preset.preset_id
         )
 
@@ -201,9 +201,9 @@ class KasaPresetSevice:
 
         # Delete the cached device list if it exists
         asyncio.create_task(
-            self.__cache_client.delete_key(cache_key))
+            self._cache_client.delete_key(cache_key))
         asyncio.create_task(
-            self.__cache_client.delete_key(CacheKey.preset_list()))
+            self._cache_client.delete_key(CacheKey.preset_list()))
 
         return DeleteResponse(
             delete_result=delete_result)
@@ -217,16 +217,16 @@ class KasaPresetSevice:
 
         logger.info('Get all presets')
 
-        preset_entities = await self.__cache_client.get_json(
+        preset_entities = await self._cache_client.get_json(
             key=CacheKey.preset_list())
 
         if preset_entities is None:
             logger.info('Fetching presets from database')
-            preset_entities = await self.__preset_repository.get_all()
+            preset_entities = await self._preset_repository.get_all()
 
         # Cache the preset list asynchonously
         asyncio.create_task(
-            self.__cache_client.set_json(
+            self._cache_client.set_json(
                 key=CacheKey.preset_list(),
                 value=preset_entities,
                 ttl=CacheExpiration.hours(24)))
@@ -245,17 +245,17 @@ class KasaPresetSevice:
 
         logger.info(f'Get presets: {preset_ids}')
 
-        preset_entities = await self.__cache_client.get_json(
+        preset_entities = await self._cache_client.get_json(
             key=CacheKey.preset_list())
 
         if preset_entities is None:
             logger.info(f'Fetching presets from database: {preset_ids}')
-            preset_entities = await self.__preset_repository.get_presets(
+            preset_entities = await self._preset_repository.get_presets(
                 preset_ids=preset_ids)
 
         # Cache the preset list asynchonously
         asyncio.create_task(
-            self.__cache_client.set_json(
+            self._cache_client.set_json(
                 key=CacheKey.preset_list(),
                 value=preset_entities,
                 ttl=CacheExpiration.hours(24)))
