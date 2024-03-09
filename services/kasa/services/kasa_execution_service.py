@@ -129,7 +129,6 @@ class KasaExecutionService:
         device_id: str,
         preset: KasaPreset,
         region_id: str,
-        ignore_stored_device_state: bool = False,
         kasa_token: str = None
     ):
         '''
@@ -146,7 +145,6 @@ class KasaExecutionService:
                 device_id=device_id,
                 preset=preset,
                 region_id=region_id,
-                ignore_stored_device_state=ignore_stored_device_state,
                 kasa_token=kasa_token)
         except:
             logger.exception(
