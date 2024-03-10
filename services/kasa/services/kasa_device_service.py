@@ -1,12 +1,6 @@
 import asyncio
 from typing import List, Tuple
 
-from framework.clients.cache_client import CacheClientAsync
-from framework.concurrency import TaskCollection
-from framework.exceptions.nulls import ArgumentNullException
-from framework.logger.providers import get_logger
-from framework.validators.nulls import none_or_whitespace
-
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_device_repository import KasaDeviceRepository
 from domain.cache import CacheExpiration, CacheKey
@@ -19,6 +13,11 @@ from domain.kasa.device import KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import (DeviceSyncResponse, KasaRequest, KasaResponse,
                          UpdateDeviceRequest)
+from framework.clients.cache_client import CacheClientAsync
+from framework.concurrency import TaskCollection
+from framework.exceptions.nulls import ArgumentNullException
+from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_event_service import KasaEventService
 from services.kasa_region_service import KasaRegionService
@@ -248,10 +247,9 @@ class KasaDeviceService:
             device=device)
 
         # Generate the request body
-        kasa_request = (
-            preset.to_request(
-                device=typed_device).get_request_body()
-        )
+        kasa_request = (preset
+                        .to_request(device=typed_device)
+                        .get_request_body())
 
         logger.info(f'Sending Kasa device state request')
 
@@ -297,10 +295,11 @@ class KasaDeviceService:
 
         # Expire cached device list and cached device that
         # we're updating heres
-        await TaskCollection(
-            self.expire_cached_device(
-                device_id=update_request.device_id),
-            self.expire_cached_device_list()).run()
+        updates = TaskCollection(
+            self.expire_cached_device(device_id=update_request.device_id),
+            self.expire_cached_device_list())
+
+        await updates.run()
 
         if none_or_whitespace(update_request.device_id):
             logger.info(f'No device ID provided in device update request')
@@ -349,11 +348,13 @@ class KasaDeviceService:
         ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         # Expire cached device list
-        await TaskCollection(
+        bust = await TaskCollection(
             self.expire_cached_device(
                 device_id=device_id),
             self.expire_cached_device_list()
-        ).run()
+        )
+
+        await bust.run()
 
         logger.info(f'Set device region: {device_id}: {region_id}')
 

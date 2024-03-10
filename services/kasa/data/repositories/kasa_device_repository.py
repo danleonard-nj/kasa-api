@@ -1,11 +1,10 @@
 from typing import Dict, List
 
+from data.constants import MongoConstants
+from domain.queries import GetDevicesByRegionQuery, GetDevicesQuery
 from framework.exceptions.nulls import ArgumentNullException
 from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
-
-from data.constants import MongoConstants
-from data.queries import GetDevicesByRegionQuery, GetDevicesQuery
 
 
 class KasaDeviceRepository(MongoRepositoryAsync):
@@ -54,11 +53,11 @@ class KasaDeviceRepository(MongoRepositoryAsync):
             device_ids=device_ids,
             region_id=region_id)
 
-        results = self.collection.find(
-            query.get_filter())
-
-        return await results.to_list(
-            length=None)
+        return await (
+            self.collection
+            .find(query.get_query())
+            .to_list(length=None)
+        )
 
     async def get_devices_ids_by_region(
         self,
@@ -73,12 +72,15 @@ class KasaDeviceRepository(MongoRepositoryAsync):
         query = GetDevicesByRegionQuery(
             region_id=region_id)
 
-        results = self.collection.find(
-            query.get_filter(),
-            query.get_projection())
+        return await (
+            self.collection
+            .find(query.get_filter(),
+                  query.get_projection())
+            .to_list(length=None)
+        )
 
-        return await results.to_list(
-            length=None)
+        # return await results.to_list(
+        #     length=None)
 
     async def get_automated_sync_devices(
         self

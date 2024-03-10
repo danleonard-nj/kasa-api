@@ -12,10 +12,10 @@ class KasaLight(KasaDevice):
         device_id: str,
         device_name: str,
         state: bool,
-        brightness: Union[int, float],
-        hue: Union[int, float],
-        saturation: Union[int, float],
-        temperature: Union[int, float] = 0,
+        brightness: int | float,
+        hue: int | float,
+        saturation: int | float,
+        temperature: int | float = 0,
         **kwargs
     ):
 
@@ -61,7 +61,7 @@ class KasaLight(KasaDevice):
     @staticmethod
     def from_kasa_response(
         kasa_response: KasaResponse
-    ) -> Union['KasaLight', None]:
+    ) -> 'KasaLight':
         '''
         Construct a `KasaLight` instance from the device
         info response from the Kasa client
@@ -100,7 +100,7 @@ class KasaLight(KasaDevice):
 
     def to_kasa_request(
         self
-    ) -> Dict:
+    ) -> dict:
         transition_light_state = dict(
             mode='normal',
             saturation=self.saturation,

@@ -16,8 +16,8 @@ class KasaDeviceHandler:
     @staticmethod
     def to_device_preset(
         device: KasaDevice,
-        definition: Dict
-    ) -> Union[KasaPlug, KasaLight]:
+        definition: dict
+    ) -> KasaPlug | KasaLight:
         '''
         Parse the device type (light, plug, etc) with
         preset parameters
@@ -50,7 +50,7 @@ class KasaPreset(Serializable):
         preset_id: str,
         preset_name: str,
         device_type: str,
-        definition: Dict,
+        definition: dict,
         created_date: int,
         modified_date: int,
     ):
@@ -70,7 +70,7 @@ class KasaPreset(Serializable):
 
     @staticmethod
     def from_dict(
-        data: Dict
+        data: dict
     ):
         return KasaPreset(
             preset_id=data.get('preset_id'),
@@ -83,7 +83,7 @@ class KasaPreset(Serializable):
 
     def get_selector(
         self
-    ) -> Dict:
+    ) -> dict:
 
         return {
             'preset_id': self.preset_id
@@ -109,7 +109,7 @@ class KasaPreset(Serializable):
 
     @staticmethod
     def create_preset(
-        data: Dict
+        data: dict
     ):
         return KasaPreset.from_dict(
             data=data | {
@@ -121,7 +121,7 @@ class KasaPreset(Serializable):
     def to_device_preset(
         self,
         device: KasaDevice
-    ) -> Union[KasaPlug, KasaLight]:
+    ) -> KasaPlug | KasaLight:
         '''
         Parse the device type (light, plug, etc) with
         preset parameters

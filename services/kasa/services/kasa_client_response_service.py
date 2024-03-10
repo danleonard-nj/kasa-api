@@ -44,7 +44,10 @@ class KasaClientResponseService:
                 client_response=request.client_response,
                 state_key=request.state_key)
 
-        model = KasaClientResponse(
+        # model = KasaClientResponse(
+        #     data=entity)
+
+        model = KasaClientResponse.from_entity(
             data=entity)
 
         # Update the client response
@@ -65,7 +68,7 @@ class KasaClientResponseService:
         preset_id: str,
         client_response: Dict,
         state_key: str
-    ) -> Dict:
+    ) -> dict:
         '''
         Create a client response for a given device
         '''
@@ -100,5 +103,5 @@ class KasaClientResponseService:
             raise Exception(
                 f"No client response found for device with the ID '{device_id}'")
 
-        return KasaClientResponse(
+        return KasaClientResponse.from_entity(
             data=entity)

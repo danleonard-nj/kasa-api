@@ -1,9 +1,7 @@
-from typing import Dict, List, Union
-
+from data.constants import MongoConstants
+from domain.queries import GetPresetsByPresetIdsQuery
 from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
-
-from data.constants import MongoConstants
 
 
 class KasaPresetRepository(MongoRepositoryAsync):
@@ -46,27 +44,21 @@ class KasaPresetRepository(MongoRepositoryAsync):
 
     async def get_presets(
         self,
-        preset_ids: List[str]
+        preset_ids: list[str]
     ) -> list[dict]:
 
-        query = {
-            'preset_id': {
-                '$in': preset_ids
-            }
-        }
+        query = GetPresetsByPresetIdsQuery(
+            preset_ids=preset_ids)
 
-        results = self.collection.find(query)
-
-        return await results.to_list(
-            length=None)
+        return await (self.collection
+                      .find(query.get_query())
+                      .to_list(length=None))
 
     async def get_preset_by_id(
         self,
         preset_id: str
-    ) -> Union[dict, None]:
+    ) -> dict | None:
 
-        query = {
+        return await self.collection.find_one({
             'preset_id': preset_id
-        }
-
-        return await self.collection.find_one(query)
+        })

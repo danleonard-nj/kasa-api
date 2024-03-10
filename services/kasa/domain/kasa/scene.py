@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Dict, List
+from typing import List
 
 from framework.serialization import Serializable
 
@@ -22,7 +22,7 @@ class KasaSceneMapping:
     @property
     def device_ids(
         self
-    ) -> List[str]:
+    ) -> list[str]:
 
         device_ids = set([
             x.device_id
@@ -34,7 +34,7 @@ class KasaSceneMapping:
     @property
     def preset_ids(
         self
-    ) -> List[str]:
+    ) -> list[str]:
         preset_ids = set([
             x.preset_id
             for x in self.mapping
@@ -45,7 +45,7 @@ class KasaSceneMapping:
     @property
     def mapping(
         self
-    ) -> List[KasaDevicePreset]:
+    ) -> list[KasaDevicePreset]:
         return self.__mapping
 
     def __init__(self, mapping):
@@ -55,7 +55,7 @@ class KasaSceneMapping:
     def __get_device_presets(
         self,
         mapping
-    ) -> List[KasaDevicePreset]:
+    ) -> list[KasaDevicePreset]:
         scene_mapping = list()
 
         # Shape of a scene mapping on the entity:
@@ -82,7 +82,7 @@ class KasaSceneMapping:
 class KasaPresetDeviceMapping:
     def __init__(
         self,
-        mapping: Dict
+        mapping: dict
     ):
         self.preset_id = mapping.get('preset_id')
         self.devices = mapping.get('devices')
@@ -114,7 +114,9 @@ class KasaScene(Serializable):
             self.scene_name, 'scene_name')
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(
+        data: dict
+    ):
         return KasaScene(
             scene_id=data.get('scene_id'),
             scene_name=data.get('scene_name'),
@@ -133,7 +135,7 @@ class KasaScene(Serializable):
 
     def get_mapping(
         self
-    ):
+    ) -> list[KasaPresetDeviceMapping]:
         return [
             KasaPresetDeviceMapping(
                 mapping=mapping)
@@ -148,7 +150,7 @@ class KasaScene(Serializable):
 
     @staticmethod
     def create_scene(
-        data
+        data: dict
     ) -> 'KasaScene':
 
         return KasaScene.from_dict(
@@ -171,7 +173,7 @@ class KasaSceneCategory(Serializable):
 
     def get_selector(
         self
-    ) -> Dict:
+    ) -> dict:
         return {
             'scene_category_id': self.scene_category_id
         }
