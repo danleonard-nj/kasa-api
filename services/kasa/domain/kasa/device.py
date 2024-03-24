@@ -1,11 +1,11 @@
 from abc import abstractmethod
-from typing import Dict
+from typing import Dict, Literal
 
-from framework.exceptions.nulls import ArgumentNullException
-from framework.serialization import Serializable
 from domain.constants import KasaDeviceType
 from domain.exceptions import InvalidDeviceTypeException
 from domain.rest import KasaApiRequest
+from framework.exceptions.nulls import ArgumentNullException
+from framework.serialization import Serializable
 
 
 class KasaDevice(Serializable):
@@ -122,3 +122,36 @@ class KasaDevice(Serializable):
         ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
 
         self.region_id = region_id
+
+
+class DeviceLog(Serializable):
+    def __init__(
+        self,
+        log_id: str,
+        timestamp: int,
+        level: Literal['INFO', 'ERROR'],
+        device_id: str,
+        preset_id: str,
+        state_key: str,
+        message: str
+    ):
+        self.log_id = log_id
+        self.timestamp = timestamp
+        self.level = level
+        self.device_id = device_id
+        self.preset_id = preset_id
+        self.state_key = state_key
+        self.message = message
+
+    @staticmethod
+    def from_entity(
+        data: dict
+    ):
+        return DeviceLog(
+            log_id=data.get('log_id'),
+            timestamp=data.get('timestamp'),
+            level=data.get('level'),
+            device_id=data.get('device_id'),
+            preset_id=data.get('preset_id'),
+            state_key=data.get('state_key'),
+            message=data.get('message'))

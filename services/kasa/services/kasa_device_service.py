@@ -1,27 +1,31 @@
 import asyncio
-from typing import List, Tuple
-
-from framework.clients.cache_client import CacheClientAsync
-from framework.concurrency import TaskCollection
-from framework.exceptions.nulls import ArgumentNullException
-from framework.logger.providers import get_logger
-from framework.validators.nulls import none_or_whitespace
+import uuid
+from typing import List, Literal, Tuple
 
 from clients.kasa_client import KasaClient
-from data.repositories.kasa_device_repository import KasaDeviceRepository
+from data.repositories.kasa_device_repository import (KasaDeviceLogRepository,
+                                                      KasaDeviceRepository)
 from domain.cache import CacheExpiration, CacheKey
 from domain.exceptions import (ClientResponseNotFoundException,
                                DeviceNotFoundException,
                                InvalidDeviceRequestException,
                                RegionNotFoundException)
 from domain.kasa.client_response import KasaClientResponse
-from domain.kasa.device import KasaDevice
+from domain.kasa.device import DeviceLog, KasaDevice
 from domain.kasa.preset import KasaPreset
 from domain.rest import (DeviceSyncResponse, KasaRequest, KasaResponse,
                          UpdateDeviceRequest)
+from framework.clients.cache_client import CacheClientAsync
+from framework.concurrency import TaskCollection
+from framework.exceptions.nulls import ArgumentNullException
+from framework.logger.providers import get_logger
+from framework.serialization import Serializable
+from framework.serialization.utilities import serialize
+from framework.validators.nulls import none_or_whitespace
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_event_service import KasaEventService
 from services.kasa_region_service import KasaRegionService
+from utils.helpers import DateTimeUtil
 
 logger = get_logger(__name__)
 
@@ -31,6 +35,7 @@ class KasaDeviceService:
         self,
         kasa_client: KasaClient,
         device_repository: KasaDeviceRepository,
+        device_log_repository: KasaDeviceLogRepository,
         region_service: KasaRegionService,
         cache_client: CacheClientAsync,
         client_response_service: KasaClientResponseService,
@@ -38,10 +43,67 @@ class KasaDeviceService:
     ):
         self._kasa_client = kasa_client
         self._device_repository = device_repository
+        self._device_log_repository = device_log_repository
         self._region_service = region_service
         self._cache_client = cache_client
         self._client_response_service = client_response_service
         self._event_service = event_service
+
+    async def get_device_logs(
+        self,
+        start_timestamp: int,
+        end_timestamp: int
+    ):
+        ArgumentNullException.if_none(start_timestamp, 'start_timestamp')
+        ArgumentNullException.if_none(end_timestamp, 'end_timestamp')
+
+        logger.info(f'Get device logs: {start_timestamp} -> {end_timestamp}')
+
+        entities = await self._device_log_repository.get_device_logs_by_timestamp_range(
+            start_timestamp=int(start_timestamp),
+            end_timestamp=int(end_timestamp))
+
+        logs = [DeviceLog.from_entity(data=entity)
+                for entity in entities]
+
+        logger.info(f'Fetched {len(logs)} logs')
+
+        return logs
+
+    async def capture_device_log(
+        self,
+        device_id: str,
+        preset_id: str,
+        state_key: str,
+        message: str,
+        level: Literal['INFO', 'ERROR'] = 'INFO'
+    ):
+        '''
+        Capture a device log
+        '''
+
+        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
+        ArgumentNullException.if_none_or_whitespace(preset_id, 'preset_id')
+        ArgumentNullException.if_none_or_whitespace(state_key, 'state_key')
+        ArgumentNullException.if_none_or_whitespace(message, 'message')
+
+        logger.info(f'Capture device log: {device_id}: {message}')
+
+        log = DeviceLog(
+            log_id=str(uuid.uuid4()),
+            timestamp=DateTimeUtil.timestamp(),
+            level=level,
+            device_id=device_id,
+            preset_id=preset_id,
+            state_key=state_key,
+            message=message)
+
+        logger.info(f'Log captured: {log.to_dict()}')
+
+        result = await self._device_log_repository.insert(
+            document=log.to_dict())
+
+        logger.info(f'Log record inserted: {result.inserted_id}')
 
     async def expire_cached_device(
         self,
@@ -271,6 +333,14 @@ class KasaDeviceService:
         else:
             logger.info('Non-list response type')
             response = client_results.to_dict()
+
+        # Capture the device log
+        await self.capture_device_log(
+            device_id=device.device_id,
+            preset_id=preset.preset_id,
+            state_key=state_key,
+            message=f'Set device state response: {serialize(response)}',
+            level='ERROR' if client_results.is_error else 'INFO')
 
         # Send the event that captures the client response
         # for the device state change request

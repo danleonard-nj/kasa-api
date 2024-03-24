@@ -83,3 +83,24 @@ class GetDevicesByRegionQuery(MongoProjectionQuery):
             'device_id': True,
             '_id': False
         }
+
+
+class GetDeviceLogsByTimestampRangeQuery(MongoQuery):
+    def __init__(
+        self,
+        start_timestamp: int,
+        end_timestamp: int
+    ):
+        self.start_timestamp = start_timestamp
+        self.end_timestamp = end_timestamp
+
+    def get_filter(
+        self
+    ) -> dict:
+
+        return {
+            'timestamp': {
+                '$gte': self.start_timestamp,
+                '$lte': self.end_timestamp
+            }
+        }

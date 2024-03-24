@@ -44,8 +44,7 @@ class KasaClientResponseService:
                 client_response=request.client_response,
                 state_key=request.state_key)
 
-        model = KasaClientResponse(
-            data=entity)
+        model = KasaClientResponse.from_entity(data=entity)
 
         # Update the client response
         model.update_client_response(
@@ -100,5 +99,5 @@ class KasaClientResponseService:
             raise Exception(
                 f"No client response found for device with the ID '{device_id}'")
 
-        return KasaClientResponse(
+        return KasaClientResponse.from_entity(
             data=entity)

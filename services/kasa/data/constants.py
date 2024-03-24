@@ -9,6 +9,7 @@ class MongoConstants:
     ConnectionStringName = 'connection_string'
     DatabaseName = 'Kasa'
     KasaDeviceCollectionName = 'KasaDevice'
+    KasaDeviceLogCollectionName = 'KasaDeviceLog'
     KasaLinkCollectionName = 'KasaLink'
     KasaPresetCollectionName = 'KasaPreset'
     KasaSceneCollectionName = 'KasaScene'

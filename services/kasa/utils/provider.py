@@ -13,7 +13,7 @@ from clients.identity_client import IdentityClient
 from clients.kasa_client import KasaClient
 from data.repositories.kasa_client_response_repository import \
     KasaClientResponseRepository
-from data.repositories.kasa_device_repository import KasaDeviceRepository
+from data.repositories.kasa_device_repository import KasaDeviceLogRepository, KasaDeviceRepository
 from data.repositories.kasa_preset_repository import KasaPresetRepository
 from data.repositories.kasa_region_repository import KasaRegionRepository
 from data.repositories.kasa_scene_category_repository import \
@@ -64,6 +64,7 @@ def register_repositories(descriptors: ServiceCollection):
     descriptors.add_singleton(KasaPresetRepository)
     descriptors.add_singleton(KasaClientResponseRepository)
     descriptors.add_singleton(KasaSceneCategoryRepository)
+    descriptors.add_singleton(KasaDeviceLogRepository)
 
 
 def register_services(descriptors: ServiceCollection):

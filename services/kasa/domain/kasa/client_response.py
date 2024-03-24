@@ -1,10 +1,9 @@
-from typing import Dict
 import uuid
 from datetime import datetime
-
-from framework.serialization import Serializable
+from typing import Dict
 
 from domain.rest import UpdateClientResponseRequest
+from framework.serialization import Serializable
 
 
 class KasaClientResponse(Serializable):
@@ -12,18 +11,40 @@ class KasaClientResponse(Serializable):
     def is_error(
         self
     ) -> bool:
-        return self.__get_error_status()
+        return self._get_error_status()
 
-    def __init__(self, data):
-        self.client_response_id = data.get('client_response_id')
-        self.device_id = data.get('device_id')
-        self.preset_id = data.get('preset_id')
-        self.client_response = data.get('client_response')
-        self.state_key = data.get('state_key')
-        self.created_date = data.get('created_date')
-        self.modified_date = data.get('modified_date')
+    def __init__(
+        self,
+        client_response_id: str,
+        device_id: str,
+        preset_id: str,
+        client_response: dict,
+        state_key: str,
+        created_date: datetime,
+        modified_date: datetime = None
+    ):
+        self.client_response_id = client_response_id
+        self.device_id = device_id
+        self.preset_id = preset_id
+        self.client_response = client_response
+        self.state_key = state_key
+        self.created_date = created_date
+        self.modified_date = modified_date
 
-    def __get_error_status(
+    @staticmethod
+    def from_entity(
+        data: dict
+    ):
+        return KasaClientResponse(
+            client_response_id=data.get('client_response_id'),
+            device_id=data.get('device_id'),
+            preset_id=data.get('preset_id'),
+            client_response=data.get('client_response'),
+            state_key=data.get('state_key'),
+            created_date=data.get('created_date'),
+            modified_date=data.get('modified_date'))
+
+    def _get_error_status(
         self
     ) -> bool:
         if self.client_response is None:
@@ -32,7 +53,9 @@ class KasaClientResponse(Serializable):
         return self.client_response.get(
             'error_code', 0) < 0
 
-    def get_selector(self):
+    def get_selector(
+        self
+    ) -> dict:
         return {
             'client_response_id': self.client_response_id
         }
@@ -64,11 +87,10 @@ class KasaClientResponse(Serializable):
         client_response: Dict,
         state_key: str
     ):
-        return KasaClientResponse({
-            'client_response_id': str(uuid.uuid4()),
-            'device_id': device_id,
-            'preset_id': preset_id,
-            'client_response': client_response,
-            'state_key': state_key,
-            'created_date': datetime.now()
-        })
+        return KasaClientResponse(
+            client_response_id=str(uuid.uuid4()),
+            device_id=device_id,
+            preset_id=preset_id,
+            client_response=client_response,
+            state_key=state_key,
+            created_date=datetime.now())
