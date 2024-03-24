@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Literal
 
 from domain.constants import KasaDeviceType
 from domain.exceptions import InvalidDeviceTypeException
@@ -23,7 +24,7 @@ class KasaDevice(Serializable):
         ArgumentNullException.if_none_or_whitespace(
             self.device_name, 'device_name')
 
-        self.__validate_device_type(
+        self._validate_device_type(
             device_type=self.device_type)
 
     def get_selector(
@@ -98,7 +99,7 @@ class KasaDevice(Serializable):
 
         return KasaDevice(device_kwargs)
 
-    def __validate_device_type(
+    def _validate_device_type(
         self,
         device_type: str
     ):
@@ -121,3 +122,36 @@ class KasaDevice(Serializable):
         ArgumentNullException.if_none_or_whitespace(region_id, 'region_id')
 
         self.region_id = region_id
+
+
+class DeviceLog(Serializable):
+    def __init__(
+        self,
+        log_id: str,
+        timestamp: int,
+        level: Literal['INFO', 'ERROR'],
+        device_id: str,
+        preset_id: str,
+        state_key: str,
+        message: str
+    ):
+        self.log_id = log_id
+        self.timestamp = timestamp
+        self.level = level
+        self.device_id = device_id
+        self.preset_id = preset_id
+        self.state_key = state_key
+        self.message = message
+
+    @staticmethod
+    def from_entity(
+        data: dict
+    ):
+        return DeviceLog(
+            log_id=data.get('log_id'),
+            timestamp=data.get('timestamp'),
+            level=data.get('level'),
+            device_id=data.get('device_id'),
+            preset_id=data.get('preset_id'),
+            state_key=data.get('state_key'),
+            message=data.get('message'))

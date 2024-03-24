@@ -1,10 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import List
-
-from framework.serialization import Serializable
 
 from domain.exceptions import NullArgumentException
+from framework.serialization import Serializable
 from utils.helpers import DateTimeUtil
 
 
@@ -49,10 +47,10 @@ class KasaSceneMapping:
         return self.__mapping
 
     def __init__(self, mapping):
-        self.__mapping = self.__get_device_presets(
+        self.__mapping = self._get_device_presets(
             mapping=mapping)
 
-    def __get_device_presets(
+    def _get_device_presets(
         self,
         mapping
     ) -> list[KasaDevicePreset]:

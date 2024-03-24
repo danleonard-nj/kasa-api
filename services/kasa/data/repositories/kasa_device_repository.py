@@ -1,7 +1,8 @@
 from typing import Dict, List
 
 from data.constants import MongoConstants
-from domain.queries import GetDevicesByRegionQuery, GetDevicesQuery
+from domain.queries import (GetDeviceLogsByTimestampRangeQuery,
+                            GetDevicesByRegionQuery, GetDevicesQuery)
 from framework.exceptions.nulls import ArgumentNullException
 from framework.mongo.mongo_repository import MongoRepositoryAsync
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -74,7 +75,7 @@ class KasaDeviceRepository(MongoRepositoryAsync):
 
         return await (
             self.collection
-            .find(query.get_filter(),
+            .find(query.get_query(),
                   query.get_projection())
             .to_list(length=None)
         )
@@ -95,3 +96,29 @@ class KasaDeviceRepository(MongoRepositoryAsync):
 
         return await results.to_list(
             length=None)
+
+
+class KasaDeviceLogRepository(MongoRepositoryAsync):
+    def __init__(
+        self,
+        client: AsyncIOMotorClient
+    ):
+        super().__init__(
+            client=client,
+            database=MongoConstants.DatabaseName,
+            collection=MongoConstants.KasaDeviceLogCollectionName)
+
+    async def get_device_logs_by_timestamp_range(
+        self,
+        start_timestamp: int,
+        end_timestamp: int
+    ):
+        query = GetDeviceLogsByTimestampRangeQuery(
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp)
+
+        return await (
+            self.collection
+            .find(query.get_query())
+            .to_list(length=None)
+        )

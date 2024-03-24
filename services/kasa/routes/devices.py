@@ -1,3 +1,4 @@
+import time
 from framework.logger.providers import get_logger
 from framework.rest.blueprints.meta import MetaBlueprint
 from quart import request
@@ -84,3 +85,16 @@ async def get_device_client_response(container, device_id: str):
 
     return await kasa_device_provider.get_device_client_response(
         device_id=device_id)
+
+
+@devices_bp.configure('/api/device/logs', methods=['GET'], auth_scheme=AuthPolicy.Read)
+async def get_device_logs(container):
+    kasa_device_provider: KasaDeviceProvider = container.resolve(
+        KasaDeviceProvider)
+
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    return await kasa_device_provider.get_device_logs(
+        start_date=start_date,
+        end_date=end_date)

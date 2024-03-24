@@ -1,14 +1,13 @@
 import uuid
-from typing import Dict, Union
-
-from framework.exceptions.nulls import ArgumentNullException
-from framework.serialization import Serializable
+from typing import Dict
 
 from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.kasa.devices.light import KasaLight
 from domain.kasa.devices.plug import KasaPlug
 from domain.rest import KasaRequest
+from framework.exceptions.nulls import ArgumentNullException
+from framework.serialization import Serializable
 from utils.helpers import DateTimeUtil
 
 

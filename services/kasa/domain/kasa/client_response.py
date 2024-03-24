@@ -20,8 +20,8 @@ class KasaClientResponse(Serializable):
         preset_id: str,
         client_response: dict,
         state_key: str,
-        created_date: str,
-        modified_date: str
+        created_date: datetime,
+        modified_date: datetime = None
     ):
         self.client_response_id = client_response_id
         self.device_id = device_id
@@ -31,6 +31,7 @@ class KasaClientResponse(Serializable):
         self.created_date = created_date
         self.modified_date = modified_date
 
+    @staticmethod
     def from_entity(
         data: dict
     ):
@@ -52,7 +53,9 @@ class KasaClientResponse(Serializable):
         return self.client_response.get(
             'error_code', 0) < 0
 
-    def get_selector(self):
+    def get_selector(
+        self
+    ) -> dict:
         return {
             'client_response_id': self.client_response_id
         }
@@ -90,5 +93,4 @@ class KasaClientResponse(Serializable):
             preset_id=preset_id,
             client_response=client_response,
             state_key=state_key,
-            created_date=datetime.now(),
-            modified_date=None)
+            created_date=datetime.now())
