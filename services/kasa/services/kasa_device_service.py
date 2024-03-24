@@ -310,10 +310,9 @@ class KasaDeviceService:
             device=device)
 
         # Generate the request body
-        kasa_request = (
-            preset.to_request(
-                device=typed_device).get_request_body()
-        )
+        kasa_request = (preset
+                        .to_request(device=typed_device)
+                        .get_request_body())
 
         logger.info(f'Sending Kasa device state request')
 
@@ -367,10 +366,11 @@ class KasaDeviceService:
 
         # Expire cached device list and cached device that
         # we're updating heres
-        await TaskCollection(
-            self.expire_cached_device(
-                device_id=update_request.device_id),
-            self.expire_cached_device_list()).run()
+        updates = TaskCollection(
+            self.expire_cached_device(device_id=update_request.device_id),
+            self.expire_cached_device_list())
+
+        await updates.run()
 
         if none_or_whitespace(update_request.device_id):
             logger.info(f'No device ID provided in device update request')
@@ -419,11 +419,13 @@ class KasaDeviceService:
         ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         # Expire cached device list
-        await TaskCollection(
+        bust = await TaskCollection(
             self.expire_cached_device(
                 device_id=device_id),
             self.expire_cached_device_list()
-        ).run()
+        )
+
+        await bust.run()
 
         logger.info(f'Set device region: {device_id}: {region_id}')
 

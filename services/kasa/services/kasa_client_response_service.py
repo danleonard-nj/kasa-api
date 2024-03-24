@@ -64,7 +64,7 @@ class KasaClientResponseService:
         preset_id: str,
         client_response: Dict,
         state_key: str
-    ) -> Dict:
+    ) -> dict:
         '''
         Create a client response for a given device
         '''

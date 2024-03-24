@@ -4,14 +4,12 @@ from typing import Dict, Literal
 from domain.constants import KasaDeviceType
 from domain.exceptions import InvalidDeviceTypeException
 from domain.rest import KasaApiRequest
-from framework.exceptions.nulls import ArgumentNullException
-from framework.serialization import Serializable
 
 
 class KasaDevice(Serializable):
     def __init__(
         self,
-        data: Dict
+        data: dict
     ):
         self.device_id = data.get('device_id')
         self.device_name = data.get('device_name')
@@ -29,7 +27,7 @@ class KasaDevice(Serializable):
 
     def get_selector(
         self
-    ) -> Dict:
+    ) -> dict:
         return {
             'device_id': self.device_id
         }
@@ -57,7 +55,7 @@ class KasaDevice(Serializable):
     @abstractmethod
     def to_kasa_request(
         self,
-        parameters: Dict
+        parameters: dict
     ):
         '''
         Called from the derived device type class to
@@ -76,7 +74,7 @@ class KasaDevice(Serializable):
 
     @staticmethod
     def from_device_json_object(
-        kasa_device: Dict
+        kasa_device: dict
     ):
         '''
         Construct an `KasaDevice` instance 

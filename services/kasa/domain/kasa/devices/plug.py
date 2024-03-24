@@ -1,10 +1,7 @@
-from typing import Dict, Union
-
-from framework.exceptions.nulls import ArgumentNullException
-
 from domain.constants import KasaDeviceType
 from domain.kasa.device import KasaDevice
 from domain.rest import KasaResponse
+from framework.exceptions.nulls import ArgumentNullException
 from utils.helpers import generate_key
 
 
@@ -36,7 +33,7 @@ class KasaPlug(KasaDevice):
     @staticmethod
     def from_kasa_response(
         kasa_response: KasaResponse
-    ) -> Union['KasaPlug', None]:
+    ) -> 'KasaPlug':
 
         ArgumentNullException.if_none(kasa_response, 'kasa_response')
 
@@ -57,7 +54,7 @@ class KasaPlug(KasaDevice):
 
     def to_kasa_request(
         self
-    ) -> Dict:
+    ) -> dict:
         '''
         Generate the Kasa request to set the
         device state

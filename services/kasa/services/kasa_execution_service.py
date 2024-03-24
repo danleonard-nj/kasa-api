@@ -1,5 +1,3 @@
-from typing import List, Union
-
 from clients.kasa_client import KasaClient
 from domain.kasa.preset import KasaPreset
 from domain.kasa.scene import KasaPresetDeviceMapping, KasaScene
@@ -56,7 +54,7 @@ class KasaExecutionService:
             if preset is not None
         }
 
-        set_devices = TaskCollection()
+        tasks = TaskCollection()
 
         for mapping in scene_mapping:
             for device_id in mapping.devices:
@@ -65,13 +63,13 @@ class KasaExecutionService:
                 preset = lookups.get(mapping.preset_id)
 
                 # Set up the set device call
-                set_devices.add_task(self._wrap_set_device_state(
+                tasks.add_task(self._wrap_set_device_state(
                     device_id=device_id,
                     preset=preset,
                     region_id=region_id,
                     kasa_token=kasa_token))
 
-        set_results = await set_devices.run()
+        set_results = await tasks.run()
 
         update_results = [
             result for result in set_results
@@ -86,7 +84,7 @@ class KasaExecutionService:
         device_id: str,
         region_id: str = None,
         kasa_token: str = None,
-    ) -> Union[SetDeviceStateRequest, None]:
+    ) -> SetDeviceStateRequest | None:
 
         ArgumentNullException.if_none(preset, 'preset')
         ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
@@ -104,7 +102,8 @@ class KasaExecutionService:
             logger.info(f'Device excluded by region: {device_id}')
             return
 
-        logger.info(f'Set preset: {device.to_dict()}: {preset.preset_name}')
+        logger.info(
+            f'Set device preset: {device.device_name}: {preset.preset_name}')
 
         # Send the device update request to the Kasa client
         await self._device_service.set_device_state(
@@ -116,7 +115,9 @@ class KasaExecutionService:
             device=device)
 
         state_key = typed_device.state_key()
-        logger.info(f'Typed device state key: {state_key}')
+
+        logger.info(
+            f'{device.device_name}: Typed device state key: {state_key}')
 
         # Return the updated device state key
         return SetDeviceStateRequest.create_request(
@@ -152,8 +153,8 @@ class KasaExecutionService:
 
     async def _get_presets(
         self,
-        mappings: List[KasaPresetDeviceMapping]
-    ) -> List[KasaPreset]:
+        mappings: list[KasaPresetDeviceMapping]
+    ) -> list[KasaPreset]:
 
         # Suppress these, we don't want to fail invoking
         # the scene entirely for a single missing preset
@@ -166,9 +167,9 @@ class KasaExecutionService:
             except:
                 return
 
-        get_presets = TaskCollection(*[
+        tasks = TaskCollection(*[
             wrap_get_preset(mapping.preset_id)
             for mapping in mappings
         ])
 
-        return await get_presets.run()
+        return await tasks.run()

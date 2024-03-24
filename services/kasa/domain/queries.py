@@ -5,27 +5,23 @@ from framework.serialization import Serializable
 from framework.validators.nulls import none_or_whitespace
 
 
-class MongoProjectionQuery(Serializable):
+class Queryable(Serializable):
     @abstractmethod
-    def get_filter(
-        self
-    ):
+    def get_query(self):
         pass
 
-    @abstractmethod
     def get_projection(
         self
     ):
-        pass
+        return None
+
+    def get_sort(
+        self
+    ) -> list:
+        return []
 
 
-class MongoQuery(Serializable):
-    @abstractmethod
-    def get_filter(self):
-        pass
-
-
-class GetDevicesQuery(MongoQuery):
+class GetDevicesQuery(Queryable):
     @property
     def is_region_query(
         self
@@ -41,7 +37,7 @@ class GetDevicesQuery(MongoQuery):
         self.device_ids = device_ids
         self.region_id = region_id
 
-    def __get_device_filter(
+    def _get_device_filter(
         self
     ) -> Dict:
         return {
@@ -49,27 +45,27 @@ class GetDevicesQuery(MongoQuery):
                 '$in': self.device_ids}
         }
 
-    def get_filter(
+    def get_query(
         self
     ) -> Dict:
-        query_filter = self.__get_device_filter()
+        query_filter = self._get_device_filter()
 
         if self.is_region_query:
             return query_filter | {
                 'region_id': self.region_id
             }
 
-        return self.__get_device_filter()
+        return self._get_device_filter()
 
 
-class GetDevicesByRegionQuery(MongoProjectionQuery):
+class GetDevicesByRegionQuery(Queryable):
     def __init__(
         self,
         region_id: str
     ):
         self.region_id = region_id
 
-    def get_filter(
+    def get_query(
         self
     ):
         return {
@@ -85,22 +81,18 @@ class GetDevicesByRegionQuery(MongoProjectionQuery):
         }
 
 
-class GetDeviceLogsByTimestampRangeQuery(MongoQuery):
+class GetPresetsByPresetIdsQuery(Queryable):
     def __init__(
         self,
-        start_timestamp: int,
-        end_timestamp: int
+        preset_ids: List[str]
     ):
-        self.start_timestamp = start_timestamp
-        self.end_timestamp = end_timestamp
+        self.preset_ids = preset_ids
 
-    def get_filter(
+    def get_query(
         self
     ) -> dict:
-
         return {
-            'timestamp': {
-                '$gte': self.start_timestamp,
-                '$lte': self.end_timestamp
+            'preset_id': {
+                '$in': self.preset_ids
             }
         }
