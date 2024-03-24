@@ -72,8 +72,8 @@ class KasaDeviceService:
 
     async def capture_device_log(
         self,
-        device_id: str,
-        preset_id: str,
+        device: KasaDevice,
+        preset: KasaPreset,
         state_key: str,
         message: str,
         level: Literal['INFO', 'ERROR'] = 'INFO'
@@ -82,19 +82,21 @@ class KasaDeviceService:
         Capture a device log
         '''
 
-        ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
-        ArgumentNullException.if_none_or_whitespace(preset_id, 'preset_id')
+        ArgumentNullException.if_none(device, 'device')
+        ArgumentNullException.if_none(preset, 'preset')
         ArgumentNullException.if_none_or_whitespace(state_key, 'state_key')
         ArgumentNullException.if_none_or_whitespace(message, 'message')
 
-        logger.info(f'Capture device log: {device_id}: {message}')
+        logger.info(f'Capture device log: {device.device_id}: {message}')
 
         log = DeviceLog(
             log_id=str(uuid.uuid4()),
             timestamp=DateTimeUtil.timestamp(),
             level=level,
-            device_id=device_id,
-            preset_id=preset_id,
+            device_id=device.device_id,
+            device_name=device.device_name,
+            preset_id=preset.preset_id,
+            preset_name=preset.preset_name,
             state_key=state_key,
             message=message)
 
@@ -334,12 +336,12 @@ class KasaDeviceService:
             response = client_results.to_dict()
 
         # Capture the device log
-        await self.capture_device_log(
-            device_id=device.device_id,
-            preset_id=preset.preset_id,
+        asyncio.create_task(self.capture_device_log(
+            device=device,
+            preset=preset,
             state_key=state_key,
             message=f'Set device state response: {serialize(response)}',
-            level='ERROR' if client_results.is_error else 'INFO')
+            level='ERROR' if client_results.is_error else 'INFO'))
 
         # Send the event that captures the client response
         # for the device state change request

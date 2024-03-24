@@ -131,7 +131,9 @@ class DeviceLog(Serializable):
         timestamp: int,
         level: Literal['INFO', 'ERROR'],
         device_id: str,
+        device_name: str,
         preset_id: str,
+        preset_name: str,
         state_key: str,
         message: str
     ):
@@ -139,7 +141,9 @@ class DeviceLog(Serializable):
         self.timestamp = timestamp
         self.level = level
         self.device_id = device_id
+        self.device_name = device_name
         self.preset_id = preset_id
+        self.preset_name = preset_name
         self.state_key = state_key
         self.message = message
 
@@ -152,6 +156,8 @@ class DeviceLog(Serializable):
             timestamp=data.get('timestamp'),
             level=data.get('level'),
             device_id=data.get('device_id'),
+            device_name=data.get('device_name'),
             preset_id=data.get('preset_id'),
+            preset_name=data.get('preset_name'),
             state_key=data.get('state_key'),
             message=data.get('message'))

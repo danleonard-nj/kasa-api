@@ -1,3 +1,4 @@
+import time
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
 from framework.exceptions.nulls import ArgumentNullException
@@ -115,10 +116,11 @@ class KasaClient:
 
         logger.info(f'Kasa token: {token_response}')
 
+        # Cache the token for 2 hours
         await self._cache_client.set_cache(
             key=CacheKey.kasa_token(),
             value=token_response.token,
-            ttl=60 * 6)
+            ttl=60 * 2)
 
         return token_response.token
 
@@ -138,15 +140,19 @@ class KasaClient:
         if none_or_whitespace(kasa_token):
             kasa_token = await self.get_kasa_token()
 
-        response = await self._http_client.post(
-            url=f'{self._base_url}/?token={kasa_token}',
-            json=json,
-            timeout=None)
+        try:
+            response = await self._http_client.post(
+                url=f'{self._base_url}/?token={kasa_token}',
+                json=json,
+                timeout=None)
+        except Exception as e:
+            logger.exception(f'Failed to send Kasa client request: {e}')
+            raise e
 
         logger.info(f'Status: {response.status_code}')
 
         response = KasaResponse(
-            data=response.json())
+            response=response)
 
         if response.is_error:
             logger.error(f'Failed to send request: {response.error_message}')
@@ -165,12 +171,17 @@ class KasaClient:
             username=self._username,
             password=self._password).to_dict()
 
-        response = await self._http_client.post(
-            url=f'{self._base_url}/',
-            json=request)
+        try:
+            response = await self._http_client.post(
+                url=f'{self._base_url}/',
+                json=request)
 
-        content = response.json()
-        logger.info(f'Kasa token response: {content}')
+            content = response.json()
+            logger.info(f'Kasa token response: {content}')
 
-        return KasaTokenResponse(
-            data=content)
+            return KasaTokenResponse(
+                response=response)
+
+        except Exception as e:
+            logger.exception(f'Failed to fetch Kasa token: {e}')
+            raise e

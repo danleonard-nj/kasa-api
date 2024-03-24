@@ -1,12 +1,12 @@
 import json
 from typing import Dict
 
-from framework.serialization import Serializable
-from framework.validators.nulls import none_or_whitespace
-from pymongo.results import DeleteResult
-
 from domain.constants import KasaRequestMethod, KasaRest
 from domain.exceptions import RequiredFieldException
+from framework.serialization import Serializable
+from framework.validators.nulls import none_or_whitespace
+from httpx import Response
+from pymongo.results import DeleteResult
 
 
 class Validatable:
@@ -73,19 +73,36 @@ class KasaResponse(Serializable):
         if self.has_result:
             return self.data.get('result')
 
+    @property
+    def data(
+        self
+    ):
+        '''
+        Kasa response data object
+        '''
+
+        return self.response.json()
+
     def __init__(
         self,
-        data: dict
+        response: Response
     ):
-        self.data = data
 
+        self.response = response
+
+        data = response.json()
         self.error_code = data.get(
             'error_code') or 0
         self.error_message = data.get(
             'msg')
 
-    def serializer_exclude(self):
-        return ['data']
+    def to_dict(self):
+        return super().to_dict() | {
+            'response': {
+                'status_code': self.response.status_code,
+                'duration': f'{self.response.elapsed.total_seconds()}s'
+            }
+        }
 
 
 class KasaRequest(Serializable):
@@ -281,8 +298,8 @@ class SetDevicePresetResponse(Serializable):
 
 
 class KasaTokenResponse(KasaResponse):
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, response):
+        super().__init__(response)
 
         token = (self.result.get('token')
                  if self.has_result
