@@ -21,15 +21,15 @@ class IdentityClient:
         ArgumentNullException.if_none(configuration, 'configuration')
         ArgumentNullException.if_none(cache_client, 'cache_client')
 
-        self.__cache_client = cache_client
-        self.__ad_auth: AzureAdConfiguration = configuration.ad_auth
+        self._cache_client = cache_client
+        self._ad_auth: AzureAdConfiguration = configuration.ad_auth
 
-        self.__clients = dict()
-        for client in self.__ad_auth.clients:
+        self._clients = dict()
+        for client in self._ad_auth.clients:
             self.add_client(client)
 
     def add_client(self, config: dict) -> None:
-        self.__clients.update({
+        self._clients.update({
             config.get('name'): {
                 'client_id': config.get(
                     ConfigurationKey.CLIENT_CLIENT_ID),
@@ -53,7 +53,7 @@ class IdentityClient:
 
         logger.info(f'Auth token key: {cache_key}')
 
-        cached_token = await self.__cache_client.get_cache(
+        cached_token = await self._cache_client.get_cache(
             key=cache_key)
 
         if not none_or_whitespace(cached_token):
@@ -61,7 +61,7 @@ class IdentityClient:
             return cached_token
 
         logger.info('Fetching token from AD')
-        client_credentials = self.__clients.get(client_name)
+        client_credentials = self._clients.get(client_name)
 
         if client_credentials is None:
             raise Exception(f'No client exists with the name {client_name}')
@@ -76,7 +76,7 @@ class IdentityClient:
 
         async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post(
-                url=self.__ad_auth.identity_url,
+                url=self._ad_auth.identity_url,
                 data=client_credentials)
 
         logger.info(f'Response: {response.status_code}')
@@ -88,7 +88,7 @@ class IdentityClient:
         token = response.json().get(
             'access_token')
 
-        await self.__cache_client.set_cache(
+        await self._cache_client.set_cache(
             key=cache_key,
             value=token,
             ttl=50)
@@ -96,7 +96,7 @@ class IdentityClient:
         return token
 
     def get_client(self, client_name):
-        if not self.__clients.get(client_name):
+        if not self._clients.get(client_name):
             raise Exception(f'No client with the name {client_name} exists')
 
-        return self.__clients.get(client_name)
+        return self._clients.get(client_name)

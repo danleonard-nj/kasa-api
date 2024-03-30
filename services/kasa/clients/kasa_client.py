@@ -1,3 +1,5 @@
+import asyncio
+import http
 import time
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
@@ -18,7 +20,8 @@ class KasaClient:
     def __init__(
         self,
         configuration: Configuration,
-        cache_client: CacheClientAsync
+        cache_client: CacheClientAsync,
+        http_client: httpx.AsyncClient
     ):
         self._cache_client = cache_client
 
@@ -26,9 +29,8 @@ class KasaClient:
         self._password = configuration.kasa.get('password')
         self._base_url = configuration.kasa.get('base_url')
 
-        self._http_client = httpx.AsyncClient(
-            timeout=None,
-            verify=False)
+        self._http_client = http_client
+        self._sempahore = asyncio.Semaphore(6)
 
         ArgumentNullException.if_none_or_whitespace(
             self._username, 'username')
@@ -140,14 +142,18 @@ class KasaClient:
         if none_or_whitespace(kasa_token):
             kasa_token = await self.get_kasa_token()
 
-        try:
-            response = await self._http_client.post(
-                url=f'{self._base_url}/?token={kasa_token}',
-                json=json,
-                timeout=None)
-        except Exception as e:
-            logger.exception(f'Failed to send Kasa client request: {e}')
-            raise e
+        for _ in range(3):
+            try:
+                await self._sempahore.acquire()
+
+                response = await self._http_client.post(
+                    url=f'{self._base_url}/?token={kasa_token}',
+                    json=json,
+                    timeout=None)
+
+                self._sempahore.release()
+            except Exception as e:
+                logger.info(f'Retrying Kasa client request: {str(e)}')
 
         logger.info(f'Status: {response.status_code}')
 
