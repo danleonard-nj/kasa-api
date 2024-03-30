@@ -148,8 +148,7 @@ class KasaClient:
 
                 response = await self._http_client.post(
                     url=f'{self._base_url}/?token={kasa_token}',
-                    json=json,
-                    timeout=None)
+                    json=json)
 
                 self._sempahore.release()
             except Exception as e:
