@@ -1,17 +1,14 @@
-import asyncio
-import http
-import time
+from domain.cache import CacheKey
+from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
+                         KasaGetDevicesResponse, KasaResponse,
+                         KasaTokenRequest, KasaTokenResponse)
 from framework.clients.cache_client import CacheClientAsync
 from framework.configuration.configuration import Configuration
 from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
 from framework.validators.nulls import none_or_whitespace
-import httpx
-
-from domain.cache import CacheKey
-from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
-                         KasaGetDevicesResponse, KasaResponse,
-                         KasaTokenRequest, KasaTokenResponse)
+from httpx import AsyncClient
+from utils.helpers import fire_task
 
 logger = get_logger(__name__)
 
@@ -21,7 +18,7 @@ class KasaClient:
         self,
         configuration: Configuration,
         cache_client: CacheClientAsync,
-        http_client: httpx.AsyncClient
+        http_client: AsyncClient
     ):
         self._cache_client = cache_client
 
@@ -30,7 +27,6 @@ class KasaClient:
         self._base_url = configuration.kasa.get('base_url')
 
         self._http_client = http_client
-        self._sempahore = asyncio.Semaphore(6)
 
         ArgumentNullException.if_none_or_whitespace(
             self._username, 'username')
@@ -106,7 +102,7 @@ class KasaClient:
         cached_token = await self._cache_client.get_cache(
             key=CacheKey.kasa_token())
 
-        if cached_token is not None:
+        if not none_or_whitespace(cached_token):
             logger.info(f'Returning cached Kasa token')
             return cached_token
 
@@ -118,11 +114,12 @@ class KasaClient:
 
         logger.info(f'Kasa token: {token_response}')
 
-        # Cache the token for 2 hours
-        await self._cache_client.set_cache(
-            key=CacheKey.kasa_token(),
-            value=token_response.token,
-            ttl=60 * 2)
+        # Cache the token for 30 mins
+        fire_task(
+            self._cache_client.set_cache(
+                key=CacheKey.kasa_token(),
+                value=token_response.token,
+                ttl=30))
 
         return token_response.token
 
@@ -142,25 +139,18 @@ class KasaClient:
         if none_or_whitespace(kasa_token):
             kasa_token = await self.get_kasa_token()
 
-        for _ in range(3):
-            try:
-                await self._sempahore.acquire()
-
-                response = await self._http_client.post(
-                    url=f'{self._base_url}/?token={kasa_token}',
-                    json=json)
-
-                self._sempahore.release()
-            except Exception as e:
-                logger.info(f'Retrying Kasa client request: {str(e)}')
-
-        logger.info(f'Status: {response.status_code}')
+        try:
+            response = await self._http_client.post(
+                url=f'{self._base_url}/?token={kasa_token}',
+                json=json)
+        except Exception as e:
+            logger.exception(f'Failed to send request: {response.status_code}: {response.text}: {response.headers}')
 
         response = KasaResponse(
             response=response)
 
         if response.is_error:
-            logger.error(f'Failed to send request: {response.error_message}')
+            logger.error(f'Failed to send Kasa request: {response.response.status_code}: {response.data}')
 
         return response
 

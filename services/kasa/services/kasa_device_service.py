@@ -25,7 +25,7 @@ from framework.validators.nulls import none_or_whitespace
 from services.kasa_client_response_service import KasaClientResponseService
 from services.kasa_event_service import KasaEventService
 from services.kasa_region_service import KasaRegionService
-from utils.helpers import DateTimeUtil
+from utils.helpers import DateTimeUtil, fire_task
 
 logger = get_logger(__name__)
 
@@ -336,16 +336,17 @@ class KasaDeviceService:
             response = client_results.to_dict()
 
         # Capture the device log
-        asyncio.create_task(self.capture_device_log(
-            device=device,
-            preset=preset,
-            state_key=state_key,
-            message=f'Set device state response: {serialize(response)}',
-            level='ERROR' if client_results.is_error else 'INFO'))
+        fire_task(
+            self.capture_device_log(
+                device=device,
+                preset=preset,
+                state_key=state_key,
+                message=f'Set device state response: {serialize(response)}',
+                level='ERROR' if client_results.is_error else 'INFO'))
 
         # Send the event that captures the client response
         # for the device state change request
-        asyncio.create_task(
+        fire_task(
             self._event_service.send_client_response_event(
                 device_id=device.device_id,
                 preset_id=preset.preset_id,

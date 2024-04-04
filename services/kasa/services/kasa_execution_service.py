@@ -5,6 +5,7 @@ from domain.rest import SetDeviceStateRequest
 from framework.concurrency import TaskCollection
 from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
+from framework.validators.nulls import none_or_whitespace
 from services.kasa_device_service import KasaDeviceService
 from services.kasa_preset_service import KasaPresetSevice
 
@@ -32,18 +33,11 @@ class KasaExecutionService:
 
         logger.info(f'Run scene: {scene.scene_name}')
 
-        # Use a single token for all scene requests
-        logger.info('Fetching token for scene device requests')
-        kasa_token = await self._kasa_client.get_kasa_token()
-
-        logger.info(f'Kasa token: {kasa_token}')
-
-        # Generate the device -> preset mapping
         scene_mapping = scene.get_mapping()
 
-        logger.info(f'Fetching scene presets')
-        presets = await self._get_presets(
-            mappings=scene_mapping)
+        kasa_token, presets = await TaskCollection(
+            self._kasa_client.get_kasa_token(),
+            self._get_presets(mappings=scene_mapping)).run()
 
         # Lookup for preset by ID (minimize looping
         # in here)
@@ -55,28 +49,23 @@ class KasaExecutionService:
         }
 
         tasks = TaskCollection()
-
         for mapping in scene_mapping:
             for device_id in mapping.devices:
 
-                # Get the mapped preset for this device
-                preset = lookups.get(mapping.preset_id)
-
-                # Set up the set device call
-                tasks.add_task(self._wrap_set_device_state(
-                    device_id=device_id,
-                    preset=preset,
-                    region_id=region_id,
-                    kasa_token=kasa_token))
+                # Get the mapped preset for this device and set the state
+                tasks.add_task(
+                    self._try_set_device_state(
+                        device_id=device_id,
+                        preset=lookups.get(mapping.preset_id),
+                        region_id=region_id,
+                        kasa_token=kasa_token))
 
         set_results = await tasks.run()
 
-        update_results = [
+        return [
             result for result in set_results
             if result is not None
         ]
-
-        return update_results
 
     async def set_device_state(
         self,
@@ -96,7 +85,7 @@ class KasaExecutionService:
 
         # Skip the update if this device is not in the region
         # if a region is provided
-        if (region_id is not None
+        if (not none_or_whitespace(region_id)
                 and region_id != device.region_id):
 
             logger.info(f'Device excluded by region: {device_id}')
@@ -125,7 +114,7 @@ class KasaExecutionService:
             preset_id=preset.preset_id,
             state_key=state_key)
 
-    async def _wrap_set_device_state(
+    async def _try_set_device_state(
         self,
         device_id: str,
         preset: KasaPreset,
@@ -167,9 +156,7 @@ class KasaExecutionService:
             except:
                 return
 
-        tasks = TaskCollection(*[
+        return await TaskCollection(*[
             wrap_get_preset(mapping.preset_id)
             for mapping in mappings
-        ])
-
-        return await tasks.run()
+        ]).run()

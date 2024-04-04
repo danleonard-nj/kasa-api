@@ -1,8 +1,13 @@
+import asyncio
 import datetime
 import json
 import time
 from framework.crypto.hashing import sha256
 from dateutil import parser
+
+
+def fire_task(coro):
+    asyncio.create_task(coro)
 
 
 def get_map(items: list, key: str, is_dict: bool = True):
