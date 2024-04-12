@@ -1,7 +1,7 @@
 import json
 from typing import Dict
 
-from domain.constants import KasaRequestMethod, KasaRest
+from domain.constants import KasaRest
 from domain.exceptions import RequiredFieldException
 from framework.serialization import Serializable
 from framework.validators.nulls import none_or_whitespace

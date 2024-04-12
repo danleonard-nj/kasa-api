@@ -58,8 +58,6 @@ class KasaEventService:
             base_url=self._base_url,
             token=token)
 
-        logger.info(f'Client response event: {event.to_dict()}')
-
         self._queue_client.send_message(
             message=event.to_service_bus_message())
 

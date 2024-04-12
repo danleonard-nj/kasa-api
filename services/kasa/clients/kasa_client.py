@@ -13,7 +13,7 @@ from utils.helpers import fire_task
 
 logger = get_logger(__name__)
 
-semaphore = asyncio.Semaphore(6)
+semaphore = asyncio.Semaphore(24)
 
 
 class KasaClient:
@@ -60,7 +60,8 @@ class KasaClient:
     async def set_device_state(
         self,
         kasa_request: dict,
-        kasa_token: str = None
+        kasa_token: str = None,
+        max_retries: int = 3
     ) -> KasaResponse:
         '''
         Set the Kasa device state
@@ -69,11 +70,18 @@ class KasaClient:
         ArgumentNullException.if_none(kasa_request, 'kasa_request')
 
         logger.info(f'Sending device state request to Kasa client')
-        response = await self._send_request(
-            json=kasa_request,
-            kasa_token=kasa_token)
 
-        return response
+        for _ in range(max_retries):
+            try:
+                return await self._send_request(
+                    json=kasa_request,
+                    kasa_token=kasa_token)
+            except Exception as e:
+                logger.info(f'Attempt to set device state failed: {e}')
+                continue
+
+        # If we've reached this point we've failed to set the device state
+        raise Exception(f'Failed to set device state: {kasa_request}')
 
     async def get_devices(
         self
@@ -112,10 +120,7 @@ class KasaClient:
         token_response = await self._fetch_kasa_token_from_client()
 
         if token_response.is_error:
-            raise Exception(
-                f'Failed to fetch Kasa auth token: {token_response.error_message}')
-
-        logger.info(f'Kasa token: {token_response}')
+            raise Exception(f'Failed to fetch Kasa auth token: {token_response.error_message}')
 
         # Cache the token for 30 mins
         fire_task(
@@ -149,7 +154,8 @@ class KasaClient:
                 url=f'{self._base_url}/?token={kasa_token}',
                 json=json)
         except Exception as e:
-            logger.exception(f'Failed to send request: {str(e)}')
+            logger.info(f'Failed to send request: {str(e)}')
+            raise e
         finally:
             semaphore.release()
 

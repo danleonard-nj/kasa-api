@@ -335,7 +335,7 @@ class KasaDeviceService:
             logger.info('Non-list response type')
             response = client_results.to_dict()
 
-        # Capture the device log
+        # # Capture the device log
         fire_task(
             self.capture_device_log(
                 device=device,
@@ -369,11 +369,9 @@ class KasaDeviceService:
 
         # Expire cached device list and cached device that
         # we're updating heres
-        updates = TaskCollection(
+        await TaskCollection(
             self.expire_cached_device(device_id=update_request.device_id),
-            self.expire_cached_device_list())
-
-        await updates.run()
+            self.expire_cached_device_list()).run()
 
         if none_or_whitespace(update_request.device_id):
             logger.info(f'No device ID provided in device update request')
@@ -422,13 +420,9 @@ class KasaDeviceService:
         ArgumentNullException.if_none_or_whitespace(device_id, 'device_id')
 
         # Expire cached device list
-        bust = await TaskCollection(
-            self.expire_cached_device(
-                device_id=device_id),
-            self.expire_cached_device_list()
-        )
-
-        await bust.run()
+        await TaskCollection(
+            self.expire_cached_device(device_id=device_id),
+            self.expire_cached_device_list()).run()
 
         logger.info(f'Set device region: {device_id}: {region_id}')
 
