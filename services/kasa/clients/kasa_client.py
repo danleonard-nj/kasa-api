@@ -1,3 +1,4 @@
+import asyncio
 from domain.cache import CacheKey
 from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
                          KasaGetDevicesResponse, KasaResponse,
@@ -11,6 +12,8 @@ from httpx import AsyncClient
 from utils.helpers import fire_task
 
 logger = get_logger(__name__)
+
+semaphore = asyncio.Semaphore(6)
 
 
 class KasaClient:
@@ -139,12 +142,16 @@ class KasaClient:
         if none_or_whitespace(kasa_token):
             kasa_token = await self.get_kasa_token()
 
+        await semaphore.acquire()
+
         try:
             response = await self._http_client.post(
                 url=f'{self._base_url}/?token={kasa_token}',
                 json=json)
         except Exception as e:
-            logger.exception(f'Failed to send request: {response.status_code}: {response.text}: {response.headers}')
+            logger.exception(f'Failed to send request: {str(e)}')
+        finally:
+            semaphore.release()
 
         response = KasaResponse(
             response=response)
