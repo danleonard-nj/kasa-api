@@ -57,7 +57,6 @@ class IdentityClient:
             key=cache_key)
 
         if not none_or_whitespace(cached_token):
-            logger.info(f'{cache_key}: returning cached token')
             return cached_token
 
         logger.info('Fetching token from AD')

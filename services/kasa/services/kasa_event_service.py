@@ -46,7 +46,6 @@ class KasaEventService:
         logger.info(
             f'{preset_id}: {device_id}: Dispatching client response event')
 
-        logger.info(f'Fetching event token')
         token = await self._identity_client.get_token(
             client_name='kasa-api')
 
