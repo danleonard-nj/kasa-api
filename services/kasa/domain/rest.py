@@ -96,6 +96,10 @@ class KasaResponse(Serializable):
         self.error_message = data.get(
             'msg')
 
+    @staticmethod
+    def empty_response():
+        return KasaResponse(Response({}))
+
     def to_dict(self):
         return super().to_dict() | {
             'response': {

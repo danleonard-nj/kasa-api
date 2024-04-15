@@ -50,9 +50,5 @@ class EventClient:
         Send a service bus message
         '''
 
-        logger.info(f'Dispatching event message')
-
         self._sender.send_messages(
             message=message)
-
-        logger.info(f'Message sent successfully')

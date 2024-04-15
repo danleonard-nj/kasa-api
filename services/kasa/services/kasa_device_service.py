@@ -87,8 +87,6 @@ class KasaDeviceService:
         ArgumentNullException.if_none_or_whitespace(state_key, 'state_key')
         ArgumentNullException.if_none_or_whitespace(message, 'message')
 
-        logger.info(f'Capture device log: {device.device_id}: {message}')
-
         log = DeviceLog(
             log_id=str(uuid.uuid4()),
             timestamp=DateTimeUtil.timestamp(),
@@ -100,12 +98,8 @@ class KasaDeviceService:
             state_key=state_key,
             message=message)
 
-        logger.info(f'Log captured: {log.to_dict()}')
-
         result = await self._device_log_repository.insert(
             document=log.to_dict())
-
-        logger.info(f'Log record inserted: {result.inserted_id}')
 
     async def expire_cached_device(
         self,
@@ -326,6 +320,9 @@ class KasaDeviceService:
         client_results = await self._kasa_client.set_device_state(
             kasa_request=kasa_request,
             kasa_token=kasa_token)
+
+        if client_results is None:
+            return (kasa_request, None)
 
         # TODO: Clear this up, do these cases actually happen?
         if isinstance(client_results, list):

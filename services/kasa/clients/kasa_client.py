@@ -1,4 +1,7 @@
 import asyncio
+import logging
+
+from tenacity import AsyncRetrying, after_log, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from domain.cache import CacheKey
 from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
                          KasaGetDevicesResponse, KasaResponse,
@@ -71,17 +74,15 @@ class KasaClient:
 
         logger.info(f'Sending device state request to Kasa client')
 
-        for _ in range(max_retries):
-            try:
-                return await self._send_request(
-                    json=kasa_request,
-                    kasa_token=kasa_token)
-            except Exception as e:
-                logger.info(f'Attempt to set device state failed: {e}')
-                continue
+        try:
+            return await self._send_request(
+                json=kasa_request,
+                kasa_token=kasa_token)
 
-        # If we've reached this point we've failed to set the device state
-        raise Exception(f'Failed to set device state: {kasa_request}')
+        # Catch the final retry exception
+        except Exception as ex:
+            logger.exception(f'Failed to set device state: {str(ex)}')
+            return KasaResponse.empty_response()
 
     async def get_devices(
         self
@@ -131,6 +132,12 @@ class KasaClient:
 
         return token_response.token
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=0.5, min=0.25, max=10),
+        retry_error_callback=lambda x: logger.info(f'Retrying due to: {x}'),
+        after=after_log(logger, logging.INFO),
+        retry=retry_if_exception_type(Exception))
     async def _send_request(
         self,
         json: dict,
@@ -153,9 +160,6 @@ class KasaClient:
             response = await self._http_client.post(
                 url=f'{self._base_url}/?token={kasa_token}',
                 json=json)
-        except Exception as e:
-            logger.info(f'Failed to send request: {str(e)}')
-            raise e
         finally:
             semaphore.release()
 
@@ -163,7 +167,7 @@ class KasaClient:
             response=response)
 
         if response.is_error:
-            logger.error(f'Failed to send Kasa request: {response.response.status_code}: {response.data}')
+            logger.info(f'Failed to send Kasa request: {response.response.status_code}: {response.data}')
 
         return response
 
