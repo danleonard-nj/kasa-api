@@ -20,6 +20,10 @@ class CacheKey:
         return 'device-list'
 
     @staticmethod
+    def scene_list():
+        return 'kasa-scene-list'
+
+    @staticmethod
     def kasa_token():
         return f'kasa-token'
 
@@ -33,7 +37,7 @@ class CacheKey:
 
     @staticmethod
     def scene_key(scene_id):
-        return f'scene-{scene_id}'
+        return f'kasa-scene-{scene_id}'
 
     @staticmethod
     def auth_token(

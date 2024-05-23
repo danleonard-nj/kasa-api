@@ -30,9 +30,12 @@ from services.kasa_preset_service import KasaPresetSevice
 from services.kasa_region_service import KasaRegionService
 from services.kasa_scene_category_service import KasaSceneCategoryService
 from services.kasa_scene_service import KasaSceneService
+import ssl
 
 
 def configure_http_client(container):
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
     return AsyncClient(timeout=None)
 
 

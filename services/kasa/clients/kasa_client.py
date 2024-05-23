@@ -1,8 +1,7 @@
 import asyncio
 import logging
 
-from tenacity import AsyncRetrying, after_log, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-from domain.cache import CacheKey
+from domain.cache import CacheExpiration, CacheKey
 from domain.rest import (GetDevicesRequest, GetKasaDeviceStateRequest,
                          KasaGetDevicesResponse, KasaResponse,
                          KasaTokenRequest, KasaTokenResponse)
@@ -12,6 +11,8 @@ from framework.exceptions.nulls import ArgumentNullException
 from framework.logger.providers import get_logger
 from framework.validators.nulls import none_or_whitespace
 from httpx import AsyncClient
+from tenacity import (after_log, retry, retry_if_exception_type,
+                      stop_after_attempt, wait_exponential)
 from utils.helpers import fire_task
 
 logger = get_logger(__name__)
@@ -128,7 +129,7 @@ class KasaClient:
             self._cache_client.set_cache(
                 key=CacheKey.kasa_token(),
                 value=token_response.token,
-                ttl=30))
+                ttl=CacheExpiration.hours(24)))
 
         return token_response.token
 
@@ -171,6 +172,12 @@ class KasaClient:
 
         return response
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=0.5, min=0.25, max=10),
+        retry_error_callback=lambda x: logger.info(f'Retrying due to: {x}'),
+        after=after_log(logger, logging.INFO),
+        retry=retry_if_exception_type(Exception))
     async def _fetch_kasa_token_from_client(
         self
     ) -> KasaTokenResponse:
@@ -195,5 +202,5 @@ class KasaClient:
                 response=response)
 
         except Exception as e:
-            logger.exception(f'Failed to fetch Kasa token: {e}')
+            logger.info(f'Failed to fetch Kasa token: {e}')
             raise e
